@@ -5,11 +5,14 @@ import {createComplexityLimitRule} from "graphql-validation-complexity";
 import {Context} from "../lib/Context";
 import {typeDefs, resolvers} from "../graphql-defs";
 import http from "http";
+import {assignOrDefault} from "../lib/util";
 
 export interface ServerOptions
 {
     port: number;
+    domain: string;
     contextInitializer?: Function | null;
+    context?: object | null;
 }
 
 export interface Server
@@ -20,10 +23,10 @@ export interface Server
 
 export async function init(options: ServerOptions): Promise<Server>
 {
-    if ( options.contextInitializer == null )
-    {
-        options.contextInitializer = ()=>{return {};};
-    }
+    const contextInitializer = assignOrDefault(options.contextInitializer, ()=>{return {};});
+    const givenContext = assignOrDefault(options.context, {});
+    const port = options.port;
+    const domain = options.domain;
 
     const expressApp = express();
 
@@ -39,8 +42,9 @@ export async function init(options: ServerOptions): Promise<Server>
     function apolloServerInitContext(): Context
     {
         return {
-            ...options.contextInitializer!(),
-            // Do some initialization in here...
+            ...givenContext,
+            ...contextInitializer(),
+            // ... and add more context here, if required.
         } as Context;
     }
     const context = apolloServerInitContext();
@@ -60,7 +64,6 @@ export async function init(options: ServerOptions): Promise<Server>
         },
     });
 
-    const port = options.port;
     const httpServer = http.createServer(expressApp);
     httpServer.timeout = 5000;
     const serverPromise = new Promise((resolve)=>{
@@ -69,7 +72,7 @@ export async function init(options: ServerOptions): Promise<Server>
                 port: port,
             },
             ()=>{
-                console.log(`The Graphql server is running at http(s)://your-url.asdf:${port}${apolloServerInst.graphqlPath}`);
+                console.log(`The Graphql server is running at http(s)://${domain}:${port}${apolloServerInst.graphqlPath}`);
                 resolve();
             },
         );
