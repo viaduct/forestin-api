@@ -4,9 +4,6 @@ import * as awsInit from "./init/aws";
 import * as dotenvInit from "./init/dotenv";
 import * as awsS3ObjectGetInit from "./init/aws-s3-object-get";
 
-import fs from "fs";
-import * as awsUpload from "./lib/aws-upload";
-
 async function main()
 {
     // Load Dotenv.
