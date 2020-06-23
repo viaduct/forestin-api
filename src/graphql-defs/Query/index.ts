@@ -5,11 +5,15 @@ export const name = "Query";
 export const schema = `
     type Query
     {
-        fuck: Boolean
+        signUpEmailCheck(email: String!): EmailState!
+        signUpPasswordCheck(password: String!): PasswordState!
     }
 `;
 
-import * as fuckHandler from "./fuck";
+import * as signUpEmailCheck from "./signUpEmailCheck";
+import * as signUpPasswordCheck from "./signUpPasswordCheck";
+
 export const handlers = [
-    fuckHandler,
+    signUpEmailCheck,
+    signUpPasswordCheck,
 ];
