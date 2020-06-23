@@ -8,12 +8,14 @@ interface Params
 {
 }
 
-export async function handler(parent: any, args: Params, context: Context): Promise<mongo.ObjectId[]>
+export async function handler(parent: any, args: Params, context: Context): Promise<string[]>
 {
-    return await prop(
+    const majors: mongo.ObjectId[] = await prop(
         context.db,
         CollectionKind.StudentVerification,
         parent.id,
         "majors",
     );
+
+    return majors.map((item: mongo.ObjectId)=>item.valueOf() as string);
 }

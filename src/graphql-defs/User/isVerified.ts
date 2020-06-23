@@ -1,15 +1,16 @@
 import {Context} from "../../lib/Context";
+import {isUserVerifiedForUniversity} from "../../lib/db";
 
-export const name = "verifiedStudentVerifications";
+export const name = "isVerified";
 
 interface Params
 {
     universityId: string;
 }
 
-export async function handler(parent: any, args: Params, context: Context): Promise<any[]>
+export async function handler(parent: any, args: Params, context: Context): Promise<boolean>
 {
-    // TODO
+    return await isUserVerifiedForUniversity(context.db, parent.id, args.universityId);
 
     // // Prepare studentVerification ids.
     // const props = await userProps(context.db, parent.id, {studentVerifications: 1});

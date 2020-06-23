@@ -1,6 +1,5 @@
 import {Context} from "../../lib/Context";
-import {userProps} from "../../lib/db";
-import mongo from "mongodb";
+import {verifiedStudentVerifications} from "../../lib/db";
 
 export const name = "verifiedStudentVerifications";
 
@@ -10,7 +9,7 @@ interface Params
 
 export async function handler(parent: any, args: Params, context: Context): Promise<any[]>
 {
-    // TODO
+    return await verifiedStudentVerifications(context.db, parent.id);
 
     // // Prepare studentVerification ids.
     // const props = await userProps(context.db, parent.id, {studentVerifications: 1});

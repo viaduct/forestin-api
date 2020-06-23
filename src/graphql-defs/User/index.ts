@@ -12,8 +12,24 @@ export const schema = `
         email: String! # 이메일
         studentVerifications: [StudentVerification!]! # 학생 인증
         verifiedStudentVerifications: [StudentVerification!]! # 인증된 학생인증
-        isVerified(universityId: University!): Boolean! # 해당 유저가 해당 대학의 학생으로 인증되었는지 확인
+        isVerified(universityId: ID!): Boolean! # 해당 유저가 해당 대학의 학생으로 인증되었는지 확인
     }
 `;
 
-export const handlers = [];
+import * as birthday from "./birthday";
+import * as email from "./email";
+import * as isVerified from "./isVerified";
+import * as nameModule from "./name";
+import * as phoneNumber from "./phoneNumber";
+import * as studentVerifications from "./studentVerifications";
+import * as verifiedStudentVerifications from "./verifiedStudentVerifications";
+
+export const handlers = [
+    birthday,
+    email,
+    isVerified,
+    nameModule,
+    phoneNumber,
+    studentVerifications,
+    verifiedStudentVerifications,
+];

@@ -15,4 +15,18 @@ export const schema = `
     }
 `;
 
-export const handlers = [];
+import * as evidences from "./evidences";
+import * as issuedDate from "./issuedDate";
+import * as majors from "./majors";
+import * as rejectedDate from "./rejectedDate";
+import * as state from "./state";
+import * as verifiedDate from "./verifiedDate";
+
+export const handlers = [
+    evidences,
+    issuedDate,
+    majors,
+    rejectedDate,
+    state,
+    verifiedDate,
+];
