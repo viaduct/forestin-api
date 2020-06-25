@@ -8,6 +8,7 @@ export const schema = `
         signIn(id: String!, password: String!): String!
         refreshSignInToken(token: String!): String!
         signUp(email: String!, password: String!, passFormId: String!): None
+        requestStudentVerification(userId: ID, majors: [String!]!, admissionYear: String!, evidences: [Upload!]!): None
     }
 `;
 

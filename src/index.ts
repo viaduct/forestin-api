@@ -3,6 +3,8 @@ import * as mongoInit from "./init/mongo";
 import * as awsInit from "./init/aws";
 import * as dotenvInit from "./init/dotenv";
 import * as awsS3ObjectGetInit from "./init/aws-s3-object-get";
+import {assignOrDefault} from "./lib/util";
+import {tokenData} from "./lib/login";
 
 async function main()
 {
@@ -25,6 +27,19 @@ async function main()
         context: {
             s3: awsResult.s3,
             db: mongoResult.db,
+        },
+        contextInitializer: async function({req}: {req: any})
+        {
+            const auth = req.headers.authorization;
+            if ( auth != null )
+            {
+                const authData = await tokenData(auth);
+                return {user: authData};
+            }
+            else
+            {
+                return {};
+            }
         },
     });
 

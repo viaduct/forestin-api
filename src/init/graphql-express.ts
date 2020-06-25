@@ -18,7 +18,6 @@ export interface ServerOptions
 export interface Server
 {
     expressApp: any;
-    context: Context;
 }
 
 export async function init(options: ServerOptions): Promise<Server>
@@ -39,21 +38,21 @@ export async function init(options: ServerOptions): Promise<Server>
             }
         ),
     ];
-    function apolloServerInitContext(): Context
+    async function apolloServerInitContext(integration: any): Promise<Context>
     {
         return {
             ...givenContext,
-            ...contextInitializer(),
+            ...await contextInitializer(integration),
             // ... and add more context here, if required.
         } as Context;
     }
-    const context = apolloServerInitContext();
+    // const context = apolloServerInitContext();
 
     const apolloServerInst = new ApolloServer({
         typeDefs: typeDefs,
         resolvers: resolvers,
         validationRules: apolloServerValidationRules,
-        context: context,
+        context: apolloServerInitContext,
     });
 
     apolloServerInst.applyMiddleware({
@@ -81,6 +80,5 @@ export async function init(options: ServerOptions): Promise<Server>
 
     return {
         expressApp: expressApp,
-        context: context,
     };
 }
