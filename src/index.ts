@@ -3,7 +3,6 @@ import * as mongoInit from "./init/mongo";
 import * as awsInit from "./init/aws";
 import * as dotenvInit from "./init/dotenv";
 import * as awsS3ObjectGetInit from "./init/aws-s3-object-get";
-import {assignOrDefault} from "./lib/util";
 import {tokenData} from "./lib/login";
 
 async function main()

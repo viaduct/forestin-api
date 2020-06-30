@@ -1,4 +1,4 @@
-import {passwordStateToString} from "../lib/login";
+import {stringToPasswordState_object} from "../lib/login";
 import {GraphqlKind} from "../lib/Graphql";
 
 export const kind = GraphqlKind.Enum;
@@ -13,4 +13,4 @@ export const schema = `
     }
 `;
 
-export const enumHandler = passwordStateToString;
+export const enumHandler = stringToPasswordState_object;

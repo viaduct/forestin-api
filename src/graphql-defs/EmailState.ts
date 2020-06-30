@@ -1,4 +1,4 @@
-import {emailStateToString} from "../lib/login";
+import {stringToEmailState_object} from "../lib/login";
 import {GraphqlKind} from "../lib/Graphql";
 
 export const kind = GraphqlKind.Enum;
@@ -12,4 +12,4 @@ export const schema = `
     }
 `;
 
-export const enumHandler = emailStateToString;
+export const enumHandler = stringToEmailState_object;
