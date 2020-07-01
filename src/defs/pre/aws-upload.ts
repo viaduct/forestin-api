@@ -4,7 +4,7 @@ export interface UploadOptions
 {
     key?: string;
     s3: any;
-    bucketName?: string;
+    bucketName: string;
     mime: string;
     buffer?: any;
     stream?: any;
@@ -61,7 +61,7 @@ export async function upload(options: UploadOptions): Promise<UploadResult>
 
     // Upload to s3.
     const s3Args = {
-        Bucket: bucketName != null ? bucketName : process.env.ROLLOUT_DEFAULT_S3_BUCKET_NAME,
+        Bucket: bucketName,
         Key: key,
         Body: bufferLike,
         ContentType: mime,

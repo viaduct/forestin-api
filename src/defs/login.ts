@@ -1,18 +1,44 @@
 import mongo from "mongodb";
-import {CollectionKind, collectionName, isThereAnyCandidate, jsDateToString, StudentVerificationState} from "./db";
+import {isThereAnyCandidate, jsDateToString, StudentVerificationState} from "./db";
 import {AssociationId} from "./univ";
 import jwt from "jsonwebtoken";
-import {upload} from "./aws-upload";
-import {toGraphqlUpload} from "./graphql-upload";
+import {upload} from "./pre/aws-upload";
+import {toGraphqlUpload} from "./pre/graphql-upload";
+import {CollectionKind} from "./pre/defines";
+import {FindName} from "../init/collection-name-map";
+import {Context} from "./pre/Context";
 
-export async function signIn(db: mongo.Db, email: string, pw: string): Promise<string>
+export async function signInWithContext(
+    context: Context,
+    email: string,
+    password: string,
+): Promise<string>
+{
+    return await signIn(
+        context.privateKey,
+        context.tokenLifetime,
+        context.db,
+        context.collectionNameMap,
+        email,
+        password
+    );
+}
+
+async function signIn(
+    privateKey: string,
+    tokenLifetime: number,
+    db: mongo.Db,
+    findName: FindName,
+    email: string,
+    pw: string
+): Promise<string>
 {
     // Search for the user.
     const filter = {
         email: email,
         password: pw,
     };
-    const theUserArray = await db.collection(collectionName(CollectionKind.User))
+    const theUserArray = await db.collection(findName(CollectionKind.User))
         .find(filter).project({_id: 1}).toArray();
     const exists = theUserArray.length == 1;
     const theUser = exists ? theUserArray[0] : null;
@@ -26,9 +52,9 @@ export async function signIn(db: mongo.Db, email: string, pw: string): Promise<s
         };
         const token = jwt.sign(
             data,
-            process.env.ROLLOUT_PRIVATE_KEY!,
+            privateKey,
             {
-                expiresIn: Number(process.env.ROLLOUT_LOGIN_TOKEN_LIFETIME!)
+                expiresIn: tokenLifetime,
             }
         );
         return token;
@@ -39,10 +65,28 @@ export async function signIn(db: mongo.Db, email: string, pw: string): Promise<s
     }
 }
 
-export async function refreshToken(db: mongo.Db, token: string): Promise<string>
+export async function refreshTokenWithContext(
+    context: Context,
+    token: string,
+): Promise<string>
+{
+    return await refreshToken(
+        context.privateKey,
+        context.tokenLifetime,
+        context.db,
+        token,
+    );
+}
+
+async function refreshToken(
+    privateKey: string,
+    tokenLifetime: number,
+    db: mongo.Db,
+    token: string
+): Promise<string>
 {
     // Take informations.
-    const {email, password, id} = jwt.verify(token, process.env.ROLLOUT_PRIVATE_KEY!) as any;
+    const {email, password, id} = jwt.verify(token, privateKey) as any;
 
     // Re-create jwt token.
     const data = {
@@ -52,9 +96,9 @@ export async function refreshToken(db: mongo.Db, token: string): Promise<string>
     };
     const newToken = jwt.sign(
         data,
-        process.env.ROLLOUT_PRIVATE_KEY!,
+        privateKey,
         {
-            expiresIn: Number(process.env.ROLLOUT_LOGIN_TOKEN_LIFETIME!)
+            expiresIn: tokenLifetime,
         }
     );
 
@@ -68,9 +112,9 @@ export interface TokenData
     email: string,
 }
 
-export async function tokenData(token: string): Promise<TokenData>
+export async function tokenData(privateKey: string, token: string): Promise<TokenData>
 {
-    const {email, password, id} = jwt.verify(token, process.env.ROLLOUT_PRIVATE_KEY!) as any;
+    const {email, password, id} = jwt.verify(token, privateKey) as any;
 
     const mongoUserId = new mongo.ObjectId(id);
 
@@ -127,8 +171,10 @@ export const stringToPasswordState_object = {
     NO_LATIN_ALPHABET: PasswordState.NoLatinAlphabet as number,
 };
 
-export async function signUpEmailCheck(db: mongo.Db, email: string): Promise<EmailState>
+export async function signUpEmailCheck(context: Context, email: string): Promise<EmailState>
 {
+    const {db, collectionNameMap: findName} = context;
+
     // Check invalidation.
     function validateEmail(email: string): boolean
     {
@@ -141,7 +187,12 @@ export async function signUpEmailCheck(db: mongo.Db, email: string): Promise<Ema
     }
 
     // Check existance.
-    const exists = await isThereAnyCandidate(db, CollectionKind.User, {email: email});
+    const exists = (await db
+        .collection(findName(CollectionKind.User))
+        .find({email: email})
+        .project({_id: 1})
+        .toArray()).length != 0;
+
     if ( exists )
     {
         return EmailState.Used;
@@ -187,11 +238,35 @@ const signUpToString_object = {
     [SignUpErrorKind.UnknownError]: "UNKNOWN_ERROR",
 }
 
-export async function signUp(db: mongo.Db, email: string, password: string, passFormId: unknown)
+export async function signUpWithContext(
+    context: Context,
+    email: string,
+    password: string,
+    passFormId: unknown,
+)
+{
+    return await signUp(
+        context,
+        context.db,
+        context.collectionNameMap,
+        email,
+        password,
+        passFormId,
+    );
+}
+
+async function signUp(
+    context: Context,
+    db: mongo.Db,
+    findName: FindName,
+    email: string,
+    password: string,
+    passFormId: unknown
+)
 {
     // Do email and password validation.
     const passwordState = signUpPasswordCheck(password);
-    const emailState = await signUpEmailCheck(db, email);
+    const emailState = await signUpEmailCheck(context, email);
     const passwordIsValid = passwordState == PasswordState.Valid;
     const emailIsValid = emailState == EmailState.New;
 
@@ -228,7 +303,7 @@ export async function signUp(db: mongo.Db, email: string, password: string, pass
         studentVerifications: [],
         password: password,
     };
-    const colUser = db.collection(collectionName(CollectionKind.User));
+    const colUser = db.collection(findName(CollectionKind.User));
     await colUser.insertOne(data);
 }
 
@@ -282,7 +357,9 @@ function fullAdmissionYear(year: string): string
 
 export async function requestStudentVerification(
     db: mongo.Db,
+    findName: FindName,
     s3: any,
+    bucketName: string,
     userId: mongo.ObjectId,
     majorIds: AssociationId[],
     incompleteAdmissionYear: string,
@@ -311,6 +388,7 @@ export async function requestStudentVerification(
                 s3: s3,
                 mime: concreteEvidence.mime,
                 stream: concreteEvidence.createReadStream(),
+                bucketName: bucketName,
             });
 
             // Accumulate.
@@ -338,7 +416,7 @@ export async function requestStudentVerification(
     };
 
     // Apply to the database.
-    const colVerifs = db.collection(collectionName(CollectionKind.StudentVerification));
+    const colVerifs = db.collection(findName(CollectionKind.StudentVerification));
     await colVerifs.insertOne(data);
     // Both valid and match.
 }

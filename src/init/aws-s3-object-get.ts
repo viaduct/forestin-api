@@ -2,6 +2,7 @@ export interface AwsS3ObjectGetOptions
 {
     s3: any;
     expressApp: any;
+    sendErrorToClient: boolean;
 }
 
 export interface AwsS3ObjectGet
@@ -9,48 +10,9 @@ export interface AwsS3ObjectGet
 
 export async function init(options: AwsS3ObjectGetOptions): Promise<AwsS3ObjectGet>
 {
-    const {s3, expressApp: app} = options;
+    console.log("Initializing the module aws-s3-object-get...");
 
-    // Evaluate whether to send error details to the client.
-    let doesSendErrorToClient: boolean;
-    {
-        const sendErrorEnvVar = process.env.ROLLOUT_SEND_ERROR;
-        if ( sendErrorEnvVar != null )
-        {
-            console.assert(typeof(sendErrorEnvVar) == "string");
-        }
-        let sendErrorState: string; // One of "undefined", "true", "false", "other"
-        if ( sendErrorEnvVar == null ) // or, undefined
-        {
-            sendErrorState = "undefined";
-        }
-        else if ( sendErrorEnvVar == "true" )
-        {
-            sendErrorState = "true";
-        }
-        else if ( sendErrorEnvVar == "false" )
-        {
-            sendErrorState = "false";
-        }
-        else
-        {
-            sendErrorState = "other";
-        }
-        switch ( sendErrorState )
-        {
-            case "true":
-                doesSendErrorToClient = true;
-                break;
-            case "false":
-            case "undefined":
-                doesSendErrorToClient = false;
-                break;
-            case "other":
-                console.error(`Unexpected ROLLOUT_SEND_ERROR value, ${sendErrorEnvVar}. Automatically set this property into "false".`);
-                doesSendErrorToClient = false;
-                break;
-        }
-    }
+    const {s3, expressApp: app} = options;
 
     // Allow that this api can be called from anywhere.
     app.use("/*", (request: any, response: any, next: Function)=>{
@@ -79,7 +41,7 @@ export async function init(options: AwsS3ObjectGetOptions): Promise<AwsS3ObjectG
         // Make s3 request. Make stream from it, and pipe to the response.
         s3ReadStream = s3Request.createReadStream()
             .on("error", (err: any) => {
-                if (doesSendErrorToClient) {
+                if (options.sendErrorToClient) {
                     response
                         .set("Content-Type", "application/json")
                         .status(err.statusCode || 500) // If there's no statusCode, return 500.

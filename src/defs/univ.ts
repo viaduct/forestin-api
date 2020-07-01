@@ -1,6 +1,7 @@
 import mongo from "mongodb";
-import {CollectionKind, collectionName, isThereAnyCandidate} from "./db";
-import {assignOrDefault} from "./util";
+import {collectionName, isThereAnyCandidate} from "./db";
+import {assignOrDefault} from "./pre/util";
+import {CollectionKind} from "./pre/defines";
 
 export async function universities(db: mongo.Db): Promise<Association[]>
 {
