@@ -1,51 +1,48 @@
 import mongo from "mongodb";
-import {AssociationId} from "./univ";
-import {CollectionKind} from "./pre/defines";
-import {FindName} from "../init/collection-name-map";
 
-function createFromEmptyProject(givenProject: any): any
-{
-    return {
-        _id: 0, // By default, id is not included. If you want, specify it explicitly.
-        ...givenProject,
-    };
-}
-
-function throwForNotSingle(num: number)
-{
-    if ( num != 1 )
-    {
-        throw new Error("Length is not 1.");
-    }
-}
-
-async function absProps(collection: any, id: mongo.ObjectId, givenProject: any): Promise<any>
-{
-    return await absPropsByFilter(
-        collection,
-        {_id: id},
-        givenProject
-    );
-}
-
-async function absPropsByFilter(
-    collection: mongo.Collection,
-    filter: any,
-    givenProject: any
-): Promise<any>
-{
-    const project = createFromEmptyProject(givenProject);
-
-    const queryResult = await collection
-        .find(filter)
-        .project(project)
-        .toArray();
-
-    throwForNotSingle(queryResult.length);
-
-    // Return it.
-    return queryResult[0];
-}
+// function createFromEmptyProject(givenProject: any): any
+// {
+//     return {
+//         _id: 0, // By default, id is not included. If you want, specify it explicitly.
+//         ...givenProject,
+//     };
+// }
+//
+// function throwForNotSingle(num: number)
+// {
+//     if ( num != 1 )
+//     {
+//         throw new Error("Length is not 1.");
+//     }
+// }
+//
+// async function absProps(collection: any, id: mongo.ObjectId, givenProject: any): Promise<any>
+// {
+//     return await absPropsByFilter(
+//         collection,
+//         {_id: id},
+//         givenProject
+//     );
+// }
+//
+// async function absPropsByFilter(
+//     collection: mongo.Collection,
+//     filter: any,
+//     givenProject: any
+// ): Promise<any>
+// {
+//     const project = createFromEmptyProject(givenProject);
+//
+//     const queryResult = await collection
+//         .find(filter)
+//         .project(project)
+//         .toArray();
+//
+//     throwForNotSingle(queryResult.length);
+//
+//     // Return it.
+//     return queryResult[0];
+// }
 
 // export async function props(
 //     db: mongo.Db,
@@ -135,51 +132,6 @@ async function absPropsByFilter(
 //     );
 // }
 
-export function jsDateToString(date: Date): string
-{
-    return date.valueOf().toString();
-}
-
-export function stringToJsDate(date: string): Date
-{
-    return new Date(Number(date));
-}
-
-export enum StudentVerificationState
-{
-    Pending,
-    Verified,
-    Rejected,
-}
-
-export const studentVerificationStateStringToEnum = {
-    PENDING: StudentVerificationState.Pending,
-    VERIFIED: StudentVerificationState.Verified,
-    REJECTED: StudentVerificationState.Rejected,
-}
-
-
-export function studentVerificationStateToString(a: StudentVerificationState): string
-{
-    switch ( a )
-    {
-        case StudentVerificationState.Pending: return "PENDING";
-        case StudentVerificationState.Verified: return "VERIFIED";
-        case StudentVerificationState.Rejected: return "REJECTED";
-        default: throw new Error("Something wrong.");
-    }
-}
-
-export function stringToStudentVerificationState(a: string): StudentVerificationState
-{
-    switch ( a )
-    {
-        case "PENDING": return StudentVerificationState.Pending;
-        case "VERIFIED": return StudentVerificationState.Verified;
-        case "REJECTED": return StudentVerificationState.Rejected;
-        default: throw new Error("Something wrong.");
-    }
-}
 
 // async function studentVerificationAbsDate(
 //     db: mongo.Db,

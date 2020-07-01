@@ -5,7 +5,7 @@ import * as awsS3ObjectGetInit from "./init/aws-s3-object-get";
 import * as collectionNameMapInit from "./init/collection-name-map";
 import * as dotenvInit from "./init/dotenv";
 
-import {tokenData} from "./defs/login";
+import {tokenData} from "./defs/pre/login";
 
 async function main()
 {
@@ -59,6 +59,8 @@ async function main()
         expressApp: graphqlExpressResult.expressApp,
         sendErrorToClient: process.env.ROLLOUT_SEND_ERROR! == "true",
     });
+
+    console.log("Done!");
 }
 
 main();

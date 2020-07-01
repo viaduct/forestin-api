@@ -1,12 +1,15 @@
 import mongo from "mongodb";
-import {isThereAnyCandidate, jsDateToString, StudentVerificationState} from "./db";
-import {AssociationId} from "./univ";
+import {AssociationId} from "../univ";
 import jwt from "jsonwebtoken";
-import {upload} from "./pre/aws-upload";
-import {toGraphqlUpload} from "./pre/graphql-upload";
-import {CollectionKind} from "./pre/defines";
-import {FindName} from "../init/collection-name-map";
-import {Context} from "./pre/Context";
+import {upload} from "./aws-upload";
+import {toGraphqlUpload} from "./graphql-upload";
+import {CollectionKind} from "./defines";
+import {FindName} from "../../init/collection-name-map";
+import {Context} from "./Context";
+import {StudentVerificationState} from "./StudentVerificationState";
+import {jsDateToString} from "./date-cast";
+import {PasswordState, passwordStateToString} from "./PasswordState";
+import {EmailState, emailStateToString} from "./EmailState";
 
 export async function signInWithContext(
     context: Context,
@@ -124,52 +127,6 @@ export async function tokenData(privateKey: string, token: string): Promise<Toke
         password: password,
     };
 }
-
-export enum EmailState
-{
-    New, Used, Invalid
-}
-
-export function emailStateToString(a: EmailState): string
-{
-    switch ( a )
-    {
-        case EmailState.New: return "NEW";
-        case EmailState.Used: return "USED";
-        case EmailState.Invalid: return "INVALID";
-        default: console.assert(false, a); return "";
-    }
-}
-
-export const stringToEmailState_object = {
-    NEW: EmailState.New as number,
-    USED: EmailState.Used as number,
-    INVALID: EmailState.Invalid as number,
-};
-
-export enum PasswordState
-{
-    Valid, TooShort, NoDigit, NoLatinAlphabet
-}
-
-export function passwordStateToString(a: PasswordState): string
-{
-    switch ( a )
-    {
-        case PasswordState.Valid: return "VALID";
-        case PasswordState.TooShort: return "TOO_SHORT";
-        case PasswordState.NoDigit: return "NO_DIGIT";
-        case PasswordState.NoLatinAlphabet: return "NO_LATIN_ALPHABET";
-        default: console.assert(false, a); return "";
-    }
-}
-
-export const stringToPasswordState_object = {
-    VALID: PasswordState.Valid as number,
-    TOO_SHORT: PasswordState.TooShort as number,
-    NO_DIGIT: PasswordState.NoDigit as number,
-    NO_LATIN_ALPHABET: PasswordState.NoLatinAlphabet as number,
-};
 
 export async function signUpEmailCheck(context: Context, email: string): Promise<EmailState>
 {

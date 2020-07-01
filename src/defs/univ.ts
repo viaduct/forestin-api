@@ -1,5 +1,4 @@
 import mongo from "mongodb";
-import {collectionName, isThereAnyCandidate} from "./db";
 import {assignOrDefault} from "./pre/util";
 import {CollectionKind} from "./pre/defines";
 

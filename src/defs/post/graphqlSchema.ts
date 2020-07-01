@@ -4,12 +4,15 @@ import {FindName} from "../../init/collection-name-map";
 import {GraphQLUpload} from "graphql-upload";
 import {Context} from "../pre/Context";
 import {CollectionKind} from "../pre/defines";
-import {jsDateToString, stringToJsDate, studentVerificationStateStringToEnum} from "../db";
 import {GraphQLScalarType} from "graphql";
 import {user} from "./userSchema";
 import {mutation} from "./mutationSchema";
 import {query} from "./querySchema";
 import {studentVerification} from "./studentVerificationSchema";
+import {createDictForStudentVerificationState, StudentVerificationStateCol} from "../pre/StudentVerificationState";
+import {jsDateToString, stringToJsDate} from "../pre/date-cast";
+import {createDictForPasswordState, PasswordStateCol} from "../pre/PasswordState";
+import {createDictForEmailState, EmailStateCol} from "../pre/EmailState";
 
 const rootDefs: GraphqlDef[] = [
     {
@@ -17,8 +20,10 @@ const rootDefs: GraphqlDef[] = [
         resolvers: {},
     },
     {
-        typeDefs: "scalar GraphQLUpload",
-        resolvers: {GraphQLUpload},
+        typeDefs: "",
+        resolvers: {
+            Upload: GraphQLUpload
+        },
     },
     {
         typeDefs: `
@@ -95,7 +100,10 @@ const rootDefs: GraphqlDef[] = [
             "verified",
             "rejected",
         ],
-        studentVerificationStateStringToEnum, // TODO
+        createDictForStudentVerificationState(
+            StudentVerificationStateCol.Name,
+            StudentVerificationStateCol.Kind
+        ),
     ),
     graphqlEnumDef(
         "password state",
@@ -105,21 +113,29 @@ const rootDefs: GraphqlDef[] = [
             "no latin alphabet",
             "too short",
         ],
-        null, // TODO
+        createDictForPasswordState(
+            PasswordStateCol.Name,
+            PasswordStateCol.Kind,
+        ),
     ),
     graphqlEnumDef(
         "email state",
         ["new", "used", "invalid"],
-        null, // TODO
+        createDictForEmailState(
+            EmailStateCol.Name,
+            EmailStateCol.Kind,
+        ),
     ),
     {
         typeDefs: "scalar StaticDate",
-        resolvers: new GraphQLScalarType({
-            name: "StaticDate",
-            description: "Non-timezone considering, date-precision time-representing type. Initially introduced to represent birthday, but its usage may be expended more in the future.",
-            serialize: a=>a,
-            parseValue: a=>a,
-        }),
+        resolvers: {
+            StaticDate: new GraphQLScalarType({
+                name: "StaticDate",
+                description: "Non-timezone considering, date-precision time-representing type. Initially introduced to represent birthday, but its usage may be expended more in the future.",
+                serialize: a=>a,
+                parseValue: a=>a,
+            }),
+        },
     },
     {
         typeDefs: `

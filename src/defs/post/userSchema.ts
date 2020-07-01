@@ -3,8 +3,8 @@ import {Context} from "../pre/Context";
 import {dbObjProp} from "./graphqlSchema";
 import {CollectionKind} from "../pre/defines";
 import mongo from "mongodb";
-import {StudentVerificationState} from "../db";
 import {AssociationId} from "../univ";
+import {StudentVerificationState} from "../pre/StudentVerificationState";
 
 const userDefs: GraphqlDef[] = [
     {
@@ -28,7 +28,7 @@ const userDefs: GraphqlDef[] = [
                 phoneNumber: createDbObjPropForGraphql(CollectionKind.User, "phoneNumber"),
                 email: createDbObjPropForGraphql(CollectionKind.User, "email"),
                 studentVerifications: createDbObjPropForGraphql(CollectionKind.User, "studentVerifications"),
-                verifiedStudentverifications: createDbObjPropForGraphql(
+                verifiedStudentVerifications: createDbObjPropForGraphql(
                     CollectionKind.User,
                     "studentVerifications",
                     (verifs: { state: StudentVerificationState }[]) => verifs.map(oneVerif => oneVerif.state == StudentVerificationState.Verified)
