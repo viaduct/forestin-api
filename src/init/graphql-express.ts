@@ -2,10 +2,10 @@ import express from "express";
 import {ApolloServer} from "apollo-server-express";
 import depthLimit from "graphql-depth-limit";
 import {createComplexityLimitRule} from "graphql-validation-complexity";
-import {Context} from "../lib/Context";
-import {typeDefs, resolvers} from "../graphql-defs";
+import {Context} from "../defs/pre/Context";
 import http from "http";
-import {assignOrDefault} from "../lib/util";
+import {assignOrDefault} from "../defs/pre/util";
+import {root as graphqlRootSchema} from "../defs/post/graphqlSchema";
 
 export interface ServerOptions
 {
@@ -22,6 +22,8 @@ export interface Server
 
 export async function init(options: ServerOptions): Promise<Server>
 {
+    console.log("Initializing the module graphql-express...");
+
     const contextInitializer = assignOrDefault(options.contextInitializer, ()=>{return {};});
     const givenContext = assignOrDefault(options.context, {});
     const port = options.port;
@@ -49,8 +51,8 @@ export async function init(options: ServerOptions): Promise<Server>
     // const context = apolloServerInitContext();
 
     const apolloServerInst = new ApolloServer({
-        typeDefs: typeDefs,
-        resolvers: resolvers,
+        typeDefs: graphqlRootSchema.typeDefs,
+        resolvers: graphqlRootSchema.resolvers,
         validationRules: apolloServerValidationRules,
         context: apolloServerInitContext,
     });
