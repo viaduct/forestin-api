@@ -1,5 +1,5 @@
 import aws from "aws-sdk";
-import {assignOrDefault} from "../defs/pre/util";
+import {assignOrDefault} from "../defs/pre/actions/assign-or-default";
 
 export interface AwsOptions
 {

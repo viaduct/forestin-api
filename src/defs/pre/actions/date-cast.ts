@@ -1,4 +1,4 @@
-import {DayPrecDate} from "./simple-types";
+import {DayPrecDate} from "../simple-types";
 
 export function jsDateToString(date: Date): DayPrecDate {
     return date.valueOf().toString();

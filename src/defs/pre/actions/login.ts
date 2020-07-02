@@ -1,43 +1,27 @@
 import mongo from "mongodb";
 import jwt from "jsonwebtoken";
-import {upload} from "./aws-upload";
-import {toGraphqlUpload} from "./GraphqlUpload";
-import {FindName} from "../../init/collection-name-map";
-import {Context} from "./Context";
-import {StudentVerificationState} from "./enums/StudentVerificationState";
+import {upload} from "../aws-upload";
+import {toGraphqlUpload} from "../GraphqlUpload";
+import {FindName} from "../../../init/collection-name-map";
+import {Context} from "../Context";
+import {StudentVerificationState} from "../enums/StudentVerificationState";
 import {jsDateToString} from "./date-cast";
-import {findFromPasswordState, PasswordState, PasswordStateCol} from "./enums/PasswordState";
-import {EmailState, EmailStateCol, findFromEmailState} from "./enums/EmailState";
-import {findFromSignUpErrorKind, SignUpErrorKind, SignUpErrorKindCol} from "./enums/SignUpErrorKind";
-import {Gender} from "./enums/Gender";
-import {CollectionKind} from "./enums/CollectionKind";
-import {AssociationId} from "./simple-types";
+import {findFromPasswordState, PasswordState, PasswordStateCol} from "../enums/PasswordState";
+import {EmailState, EmailStateCol, findFromEmailState} from "../enums/EmailState";
+import {findFromSignUpErrorKind, SignUpErrorKind, SignUpErrorKindCol} from "../enums/SignUpErrorKind";
+import {Gender} from "../enums/Gender";
+import {CollectionKind} from "../enums/CollectionKind";
+import {AssociationId, DayPrecDate, PhoneNumber, UserName, Year, Year2} from "../simple-types";
+import {TokenData} from "../TokenData";
 
-export async function signInWithContext(
+export async function signIn(
     context: Context,
-    email: string,
-    password: string,
-): Promise<string>
-{
-    return await signIn(
-        context.privateKey,
-        context.tokenLifetime,
-        context.db,
-        context.collectionNameMap,
-        email,
-        password
-    );
-}
-
-async function signIn(
-    privateKey: string,
-    tokenLifetime: number,
-    db: mongo.Db,
-    findName: FindName,
     email: string,
     pw: string
 ): Promise<string>
 {
+    const {privateKey, tokenLifetime, db, collectionNameMap: findName} = context;
+
     // Search for the user.
     const filter = {
         email: email,
@@ -70,26 +54,26 @@ async function signIn(
     }
 }
 
-export async function refreshTokenWithContext(
-    context: Context,
-    token: string,
-): Promise<string>
-{
-    return await refreshToken(
-        context.privateKey,
-        context.tokenLifetime,
-        context.db,
-        token,
-    );
-}
+// export async function refreshTokenWithContext(
+//     context: Context,
+//     token: string,
+// ): Promise<string>
+// {
+//     return await refreshToken(
+//         context.privateKey,
+//         context.tokenLifetime,
+//         context.db,
+//         token,
+//     );
+// }
 
-async function refreshToken(
-    privateKey: string,
-    tokenLifetime: number,
-    db: mongo.Db,
+export async function refreshToken(
+    context: Context,
     token: string
 ): Promise<string>
 {
+    const {privateKey, tokenLifetime} = context;
+
     // Take informations.
     const {email, password, id} = jwt.verify(token, privateKey) as any;
 
@@ -108,26 +92,6 @@ async function refreshToken(
     );
 
     return newToken;
-}
-
-export interface TokenData
-{
-    id: mongo.ObjectId,
-    password: string,
-    email: string,
-}
-
-export async function tokenData(privateKey: string, token: string): Promise<TokenData>
-{
-    const {email, password, id} = jwt.verify(token, privateKey) as any;
-
-    const mongoUserId = new mongo.ObjectId(id);
-
-    return {
-        id: mongoUserId,
-        email: email,
-        password: password,
-    };
 }
 
 export async function signUpEmailCheck(context: Context, email: string): Promise<EmailState>
@@ -182,32 +146,32 @@ export function signUpPasswordCheck(password: string): PasswordState
     }
 }
 
-export async function signUpWithContext(
-    context: Context,
-    email: string,
-    password: string,
-    passFormId: unknown,
-)
-{
-    return await signUp(
-        context,
-        context.db,
-        context.collectionNameMap,
-        email,
-        password,
-        passFormId,
-    );
-}
+// export async function signUpWithContext(
+//     context: Context,
+//     email: string,
+//     password: string,
+//     passFormId: unknown,
+// )
+// {
+//     return await signUp(
+//         context,
+//         context.db,
+//         context.collectionNameMap,
+//         email,
+//         password,
+//         passFormId,
+//     );
+// }
 
-async function signUp(
+export async function signUp(
     context: Context,
-    db: mongo.Db,
-    findName: FindName,
     email: string,
     password: string,
     passFormId: unknown
 )
 {
+    const {db, collectionNameMap: findName} = context;
+
     // Do email and password validation.
     const passwordState = signUpPasswordCheck(password);
     const emailState = await signUpEmailCheck(context, email);
@@ -263,9 +227,9 @@ async function signUp(
 
 interface PassForm
 {
-    name: string,
-    birthday: string, // yyyy-mm-dd
-    phoneNumber: string,
+    name: UserName,
+    birthday: DayPrecDate, // yyyy-mm-dd
+    phoneNumber: PhoneNumber,
     gender: Gender,
 }
 
@@ -280,7 +244,7 @@ async function passForm(passFormId: any): Promise<PassForm>
     };
 }
 
-function fullAdmissionYear(year: string): string
+function fullAdmissionYear(year: Year2): Year
 {
     if ( year.length == 2 )
     {
@@ -305,16 +269,15 @@ function fullAdmissionYear(year: string): string
 }
 
 export async function requestStudentVerification(
-    db: mongo.Db,
-    findName: FindName,
-    s3: any,
-    bucketName: string,
+    context: Context,
     userId: mongo.ObjectId,
     majorIds: AssociationId[],
     incompleteAdmissionYear: string,
     evidences: any[]/* raw GraphQL Upload objects */
 )
 {
+    const {db, collectionNameMap: findName, s3, defaultS3BucketName: bucketName} = context;
+
     // Prepare variables.
     const admissionYear = fullAdmissionYear(incompleteAdmissionYear);
 
@@ -367,43 +330,42 @@ export async function requestStudentVerification(
     // Apply to the database.
     const colVerifs = db.collection(findName(CollectionKind.StudentVerification));
     await colVerifs.insertOne(data);
-    // Both valid and match.
 }
 
 // Returns userId or auth.
-export async function userIdOrAuth(
-    userId: mongo.ObjectId | null | undefined,
-    tokenData: TokenData | null | undefined,
-): Promise<mongo.ObjectId>
-{
-    if (
-        ((userId != null) && (tokenData != null)) &&
-        (userId.equals(tokenData.id))
-    )
-    {
-        return userId;
-    }
-    // Only tokenData is provided.
-    else if (
-        (userId == null) && (tokenData != null)
-    )
-    {
-        return tokenData.id;
-    }
-    else
-    {
-        throw new Error("Have no access right.");
-    }
-}
-
-export function mongoIdOrNull(textId: string | null | undefined): mongo.ObjectId | null
-{
-    if ( (textId != null) && (textId.length != 0) )
-    {
-        return new mongo.ObjectId(textId);
-    }
-    else
-    {
-        return null;
-    }
-}
+// export async function userIdOrAuth(
+//     userId: mongo.ObjectId | null | undefined,
+//     tokenData: TokenData | null | undefined,
+// ): Promise<mongo.ObjectId>
+// {
+//     if (
+//         ((userId != null) && (tokenData != null)) &&
+//         (userId.equals(tokenData.id))
+//     )
+//     {
+//         return userId;
+//     }
+//     // Only tokenData is provided.
+//     else if (
+//         (userId == null) && (tokenData != null)
+//     )
+//     {
+//         return tokenData.id;
+//     }
+//     else
+//     {
+//         throw new Error("Have no access right.");
+//     }
+// }
+//
+// export function mongoIdOrNull(textId: string | null | undefined): mongo.ObjectId | null
+// {
+//     if ( (textId != null) && (textId.length != 0) )
+//     {
+//         return new mongo.ObjectId(textId);
+//     }
+//     else
+//     {
+//         return null;
+//     }
+// }

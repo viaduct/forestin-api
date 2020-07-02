@@ -1,5 +1,5 @@
-import {GraphqlDef, mergeGraphqlDefs} from "../pre/graphql-aggregate";
-import {createStudentVerificationPropForGraphql} from "./user-schema";
+import {GraphqlDef, mergeGraphqlDefs} from "../pre/actions/graphql-aggregate";
+import {createDbNestedObjpropForGraphql} from "../pre/actions/db";
 import {CollectionKind} from "../pre/enums/CollectionKind";
 import {AssociationId} from "../pre/simple-types";
 
@@ -19,12 +19,12 @@ const svDefs: GraphqlDef[] = [
         `,
         resolvers: {
             StudentVerification: {
-                issuedDate: createStudentVerificationPropForGraphql("issuedDate"),
-                majors: createStudentVerificationPropForGraphql("majors", (assocId: AssociationId)=>{return{id: assocId}}),
-                evidences: createStudentVerificationPropForGraphql("evidences"),
-                state: createStudentVerificationPropForGraphql("state"),
-                verifiedDate: createStudentVerificationPropForGraphql("verifiedDate"),
-                rejectedDate: createStudentVerificationPropForGraphql("rejectedDate"),
+                issuedDate: createDbNestedObjpropForGraphql(CollectionKind.User, "studentVerifications", "issuedDate"),
+                majors: createDbNestedObjpropForGraphql(CollectionKind.User, "studentVerifications", "majors", (assocId: AssociationId)=>{return{id: assocId}}),
+                evidences: createDbNestedObjpropForGraphql(CollectionKind.User, "studentVerifications", "evidences"),
+                state: createDbNestedObjpropForGraphql(CollectionKind.User, "studentVerifications", "state"),
+                verifiedDate: createDbNestedObjpropForGraphql(CollectionKind.User, "studentVerifications", "verifiedDate"),
+                rejectedDate: createDbNestedObjpropForGraphql(CollectionKind.User, "studentVerifications", "rejectedDate"),
             },
         },
     },

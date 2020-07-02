@@ -11,3 +11,7 @@ export interface HasIssuedDate {
 export interface HasLastModifiedAt {
     lastModifiedAt: Date;
 }
+
+export interface HasSafeDelete {
+    isDeleted: boolean;
+}

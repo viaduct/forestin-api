@@ -4,7 +4,7 @@ import depthLimit from "graphql-depth-limit";
 import {createComplexityLimitRule} from "graphql-validation-complexity";
 import {Context} from "../defs/pre/Context";
 import http from "http";
-import {assignOrDefault} from "../defs/pre/util";
+import {assignOrDefault} from "../defs/pre/actions/assign-or-default";
 import {root as graphqlRootSchema} from "../defs/post/graphql-schema";
 
 export interface ServerOptions

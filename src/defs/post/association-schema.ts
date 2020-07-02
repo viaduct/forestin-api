@@ -1,8 +1,9 @@
-import {Context} from "../pre/Context";
-import mongo from "mongodb";
-import {dbObjProp} from "./graphql-schema";
-import {GraphqlDef, mergeGraphqlDefs} from "../pre/graphql-aggregate";
-import {CollectionKind} from "../pre/enums/CollectionKind";
+import {GraphqlDef, mergeGraphqlDefs} from "../pre/actions/graphql-aggregate";
+import {
+    associationChildrenForGraphql,
+    associationNameForGraphql,
+    associationParentForGraphql
+} from "../pre/actions/association";
 
 const associationDefs: GraphqlDef[] = [
     {
@@ -16,8 +17,8 @@ const associationDefs: GraphqlDef[] = [
         `,
         resolvers: {
             University: {
-                name: dbAssociationNameForGraphql,
-                campuses: dbAssociationChildrenForGraphql,
+                name: associationNameForGraphql,
+                campuses: associationChildrenForGraphql,
             },
         },
     },
@@ -32,8 +33,8 @@ const associationDefs: GraphqlDef[] = [
         `,
         resolvers: {
             Major: {
-                name: dbAssociationNameForGraphql,
-                college: dbAssociationParentForGraphql,
+                name: associationNameForGraphql,
+                college: associationParentForGraphql,
             }
         },
     },
@@ -49,9 +50,9 @@ const associationDefs: GraphqlDef[] = [
         `,
         resolvers: {
             Campus: {
-                name: dbAssociationNameForGraphql,
-                colleges: dbAssociationChildrenForGraphql,
-                university: dbAssociationParentForGraphql,
+                name: associationNameForGraphql,
+                colleges: associationChildrenForGraphql,
+                university: associationParentForGraphql,
             },
         },
     },
@@ -67,9 +68,9 @@ const associationDefs: GraphqlDef[] = [
         `,
         resolvers: {
             College: {
-                name: dbAssociationNameForGraphql,
-                campus: dbAssociationParentForGraphql,
-                majors: dbAssociationChildrenForGraphql,
+                name: associationNameForGraphql,
+                campus: associationParentForGraphql,
+                majors: associationChildrenForGraphql,
             },
         },
     },
@@ -77,66 +78,3 @@ const associationDefs: GraphqlDef[] = [
 
 export const association: GraphqlDef = mergeGraphqlDefs(associationDefs);
 
-async function dbObjPropWithContext(
-    context: Context,
-    collectionKind: CollectionKind,
-    id: mongo.ObjectId,
-    propName: string,
-): Promise<any>
-{
-    return await dbObjProp(
-        context.db,
-        collectionKind,
-        context.collectionNameMap,
-        id,
-        propName,
-    );
-}
-
-async function dbAssociationNameForGraphql(
-    parent: {id: string},
-    _: any,
-    context: Context
-): Promise<any>
-{
-    const {db, collectionNameMap: findName} = context;
-
-    const obj = await db
-        .collection(findName(CollectionKind.Association))
-        .findOne({associationId: parent.id}, {name: 1} as any) as any;
-
-    return obj.name;
-}
-
-async function dbAssociationChildrenForGraphql(
-    parent: {id: string},
-    _: any,
-    context: Context
-): Promise<any>
-{
-    const {db, collectionNameMap: findName} = context;
-
-    const children = await db
-        .collection(findName(CollectionKind.Association))
-        .find({parent: parent.id})
-        .project({associationId: 1})
-        .toArray();
-
-    return children.map(child=>child.associationId);
-}
-
-async function dbAssociationParentForGraphql(
-    parent: {id: string},
-    _: any,
-    context: Context
-): Promise<any>
-{
-    const parentAssoc = await dbObjPropWithContext(
-        context,
-        CollectionKind.Association,
-        new mongo.ObjectId(parent.id),
-        "parent",
-    );
-
-    return parentAssoc;
-}

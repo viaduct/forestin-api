@@ -5,7 +5,7 @@ import * as awsS3ObjectGetInit from "./init/aws-s3-object-get";
 import * as collectionNameMapInit from "./init/collection-name-map";
 import * as dotenvInit from "./init/dotenv";
 
-import {tokenData} from "./defs/pre/login";
+import {tokenData} from "./defs/pre/TokenData";
 
 async function main()
 {

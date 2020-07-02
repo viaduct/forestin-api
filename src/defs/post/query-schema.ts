@@ -1,6 +1,6 @@
-import {GraphqlDef, mergeGraphqlDefs} from "../pre/graphql-aggregate";
+import {GraphqlDef, mergeGraphqlDefs} from "../pre/actions/graphql-aggregate";
 import {Context} from "../pre/Context";
-import {signUpEmailCheck, signUpPasswordCheck} from "../pre/login";
+import {signUpEmailCheck, signUpPasswordCheck} from "../pre/actions/login";
 
 const queryDefs: GraphqlDef[] = [
     {

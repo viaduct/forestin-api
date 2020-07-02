@@ -1,10 +1,13 @@
-import {GraphqlDef, mergeGraphqlDefs} from "../pre/graphql-aggregate";
+import {GraphqlDef, mergeGraphqlDefs} from "../pre/actions/graphql-aggregate";
 import {Context} from "../pre/Context";
-import {dbObjProp} from "./graphql-schema";
 import mongo from "mongodb";
 import {StudentVerificationState} from "../pre/enums/StudentVerificationState";
 import {CollectionKind} from "../pre/enums/CollectionKind";
 import {AssociationId} from "../pre/simple-types";
+import {createDbObjPropForGraphql, dbObjProp} from "../pre/actions/db";
+import {associationKindToLevel, associationParentAtLevel} from "../pre/actions/association";
+import {AssociationLevelKind} from "../pre/enums/AssociationEnumKind";
+import {isUserVerifiedForUniv} from "../pre/actions/user";
 
 const userDefs: GraphqlDef[] = [
     {
@@ -31,59 +34,10 @@ const userDefs: GraphqlDef[] = [
                 verifiedStudentVerifications: createDbObjPropForGraphql(
                     CollectionKind.User,
                     "studentVerifications",
-                    (verifs: { state: StudentVerificationState }[]) => verifs.map(oneVerif => oneVerif.state == StudentVerificationState.Verified)
+                    (verifs: { state: StudentVerificationState }[]) => verifs.filter(oneVerif => oneVerif.state == StudentVerificationState.Verified)
                 ),
                 isVerified: async (parent: { id: string }, args: { university: string }, context: Context) => {
-                    const verifs = await dbObjProp(
-                        context.db,
-                        CollectionKind.User,
-                        context.collectionNameMap,
-                        new mongo.ObjectId(parent.id),
-                        "studentVerifications",
-                    );
-
-                    async function parentAssociation(assocId: AssociationId): Promise<AssociationId> {
-                        const {db, collectionNameMap: findName} = context;
-
-                        const {parent: parentAssocId} = await db
-                            .collection(findName(CollectionKind.Association))
-                            .findOne({associationId: assocId}, {parent: 1});
-
-                        return parentAssocId;
-                    }
-
-                    async function univFromMajor(majorId: AssociationId): Promise<AssociationId> {
-                        return (
-                            await parentAssociation(
-                                await parentAssociation(
-                                    await parentAssociation(
-                                        majorId
-                                    )
-                                )
-                            )
-                        );
-                    }
-
-                    async function univsFromMajors(majorIds: AssociationId[]): Promise<AssociationId[]> {
-                        return await Promise.all(majorIds.map(univFromMajor));
-                    }
-
-                    async function isVerifVerified(
-                        verif: {
-                            majors: AssociationId[],
-                            state: StudentVerificationState,
-                        },
-                        univId: AssociationId,
-                    ): Promise<boolean> {
-                        if (verif.state == StudentVerificationState.Verified) {
-                            const univIdsOfVerif = await univsFromMajors(verif.majors);
-                            return univIdsOfVerif.includes(univId);
-                        } else {
-                            return false;
-                        }
-                    }
-
-                    return verifs.filter((verif: any) => isVerifVerified(verif, args.university)).length != 0;
+                    return await isUserVerifiedForUniv(context, new mongo.ObjectId(parent.id), args.university);
                 }
             },
         },
@@ -92,37 +46,3 @@ const userDefs: GraphqlDef[] = [
 
 export const user: GraphqlDef = mergeGraphqlDefs(userDefs);
 
-export function createDbObjPropForGraphql(
-    collectionKind: CollectionKind,
-    propName: string,
-    caster: Function = (a: any)=>a,
-): Function
-{
-    return async (parent: {id: string}, _: any, context: Context)=>{
-        return caster(
-            await dbObjProp(
-                context.db,
-                collectionKind,
-                context.collectionNameMap,
-                new mongo.ObjectId(parent.id),
-                propName
-            )
-        );
-    };
-}
-
-export function createStudentVerificationPropForGraphql(
-    propName: string,
-    caster: Function = (a: any)=>a,
-): Function
-{
-    return async (parent: {id: string}, _: any, context: Context)=>{
-        const uncastedResult = await context.db
-            .collection(context.collectionNameMap(CollectionKind.User))
-            .findOne(
-                {"studentVerifications._id": new mongo.ObjectId(parent.id)},
-                {_id: 0, [propName]: 1},
-            );
-        return caster(uncastedResult);
-    };
-}

@@ -1,5 +1,7 @@
 export type S3Key = string;
 export type DayPrecDate = string;
+export type Year = string; // yyyy
+export type Year2 = string; // yy
 export type AssociationId = string;
 export type AssociationName = string;
 export type AssociationLevel = number;
@@ -7,3 +9,6 @@ export type UserName = string;
 export type PhoneNumber = string;
 export type Email = string;
 export type GroupName = string;
+export type Token = string;
+export type PrivateKey = string;
+export type RawMongoId = string;

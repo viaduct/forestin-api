@@ -1,7 +1,7 @@
-import {TokenData} from "./login";
 import mongo from "mongodb";
 import aws from "aws-sdk";
 import {FindName} from "../../init/collection-name-map";
+import {TokenData} from "./TokenData";
 
 export interface Context
 {

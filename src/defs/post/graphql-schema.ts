@@ -1,6 +1,4 @@
-import {GraphqlDef, mergeGraphqlDefs} from "../pre/graphql-aggregate";
-import mongo from "mongodb";
-import {FindName} from "../../init/collection-name-map";
+import {GraphqlDef, mergeGraphqlDefs} from "../pre/actions/graphql-aggregate";
 import {GraphQLUpload} from "graphql-upload";
 import {GraphQLScalarType} from "graphql";
 import {user} from "./user-schema";
@@ -9,8 +7,7 @@ import {query} from "./query-schema";
 import {studentVerification} from "./student-verification-schema";
 import {association} from "./association-schema";
 import {graphqlEnum} from "./enum-schema";
-import {jsDateToString, stringToJsDate} from "../pre/date-cast";
-import {CollectionKind} from "../pre/enums/CollectionKind";
+import {jsDateToString, stringToJsDate} from "../pre/actions/date-cast";
 
 const rootDefs: GraphqlDef[] = [
     {
@@ -56,48 +53,3 @@ const rootDefs: GraphqlDef[] = [
 export const root: GraphqlDef = mergeGraphqlDefs(
     [mergeGraphqlDefs(rootDefs), user, mutation, query, studentVerification, association, graphqlEnum],
 );
-
-function noIdProject(project: any)
-{
-    if ( "_id" in project )
-    {
-        return project;
-    }
-    else
-    {
-        return {
-            ...project,
-            _id: 0,
-        };
-    }
-}
-
-async function dbObjProps(
-    db: mongo.Db,
-    collectionKind: CollectionKind,
-    findName: FindName,
-    id: mongo.ObjectId,
-    project: any,
-): Promise<any>
-{
-    const queryResult = await db.collection(findName(collectionKind)).findOne({_id: id}, noIdProject(project));
-
-    return queryResult;
-}
-
-export async function dbObjProp(
-    db: mongo.Db,
-    collectionKind: CollectionKind,
-    findName: FindName,
-    id: mongo.ObjectId,
-    propName: string,
-): Promise<any>
-{
-    const props = await dbObjProps(
-        db, collectionKind, findName, id, {[propName]: 1},
-    );
-
-    return props[propName];
-}
-
-
