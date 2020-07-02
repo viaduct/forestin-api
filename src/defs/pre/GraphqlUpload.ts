@@ -5,6 +5,8 @@ export interface GraphqlUpload
     createReadStream: Function;
 }
 
+export type RawGraphqlUpload = any;
+
 export function toGraphqlUpload(raw: any): GraphqlUpload
 {
     return {

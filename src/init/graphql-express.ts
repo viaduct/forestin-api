@@ -5,7 +5,7 @@ import {createComplexityLimitRule} from "graphql-validation-complexity";
 import {Context} from "../defs/pre/Context";
 import http from "http";
 import {assignOrDefault} from "../defs/pre/util";
-import {root as graphqlRootSchema} from "../defs/post/graphqlSchema";
+import {root as graphqlRootSchema} from "../defs/post/graphql-schema";
 
 export interface ServerOptions
 {

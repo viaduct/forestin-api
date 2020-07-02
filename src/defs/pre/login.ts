@@ -1,15 +1,17 @@
 import mongo from "mongodb";
-import {AssociationId} from "../univ";
 import jwt from "jsonwebtoken";
 import {upload} from "./aws-upload";
-import {toGraphqlUpload} from "./graphql-upload";
-import {CollectionKind} from "./defines";
+import {toGraphqlUpload} from "./GraphqlUpload";
 import {FindName} from "../../init/collection-name-map";
 import {Context} from "./Context";
-import {StudentVerificationState} from "./StudentVerificationState";
+import {StudentVerificationState} from "./enums/StudentVerificationState";
 import {jsDateToString} from "./date-cast";
-import {PasswordState, passwordStateToString} from "./PasswordState";
-import {EmailState, emailStateToString} from "./EmailState";
+import {findFromPasswordState, PasswordState, PasswordStateCol} from "./enums/PasswordState";
+import {EmailState, EmailStateCol, findFromEmailState} from "./enums/EmailState";
+import {findFromSignUpErrorKind, SignUpErrorKind, SignUpErrorKindCol} from "./enums/SignUpErrorKind";
+import {Gender} from "./enums/Gender";
+import {CollectionKind} from "./enums/CollectionKind";
+import {AssociationId} from "./simple-types";
 
 export async function signInWithContext(
     context: Context,
@@ -180,21 +182,6 @@ export function signUpPasswordCheck(password: string): PasswordState
     }
 }
 
-enum SignUpErrorKind
-{
-    InsufficientPassword,
-    InsufficientEmail,
-    InsufficientPassForm,
-    UnknownError,
-}
-
-const signUpToString_object = {
-    [SignUpErrorKind.InsufficientPassword]: "INSUFFICIENT_PASSWORD",
-    [SignUpErrorKind.InsufficientEmail]: "INSUFFICIENT_EMAIL",
-    [SignUpErrorKind.InsufficientPassForm]: "INSUFFICIENT_PASS_FORM",
-    [SignUpErrorKind.UnknownError]: "UNKNOWN_ERROR",
-}
-
 export async function signUpWithContext(
     context: Context,
     email: string,
@@ -227,26 +214,36 @@ async function signUp(
     const passwordIsValid = passwordState == PasswordState.Valid;
     const emailIsValid = emailState == EmailState.New;
 
+    const signUpErrorName = (kind: SignUpErrorKind)=>findFromSignUpErrorKind(
+        SignUpErrorKindCol.Kind,
+        SignUpErrorKindCol.Name,
+        kind,
+    );
+    const passwordStateName = (kind: PasswordState)=>findFromPasswordState(
+        PasswordStateCol.Kind,
+        PasswordStateCol.Name,
+        kind
+    );
+    const emailStateName = (kind: EmailState)=>findFromEmailState(
+        EmailStateCol.Kind,
+        EmailStateCol.Name,
+        kind
+    );
     // If email is the problem, throw.
     if ( !passwordIsValid )
     {
         throw {
-            signUpErrorKind: signUpToString_object[SignUpErrorKind.InsufficientPassword],
-            passwordState: passwordStateToString(passwordState),
+            signUpErrorKind: signUpErrorName(SignUpErrorKind.InsufficientPassword),
+            passwordState: passwordStateName(passwordState),
         };
     }
     if ( !emailIsValid )
     {
         throw {
-            signUpErrorKind: signUpToString_object[SignUpErrorKind.InsufficientEmail],
-            emailState: emailStateToString(emailState),
+            signUpErrorKind: signUpErrorName(SignUpErrorKind.InsufficientEmail),
+            emailState: emailStateName(emailState),
         };
     }
-    // // If anything fails, throw.
-    // if ( !(passwordIsValid && emailIsValid) )
-    // {
-    //     throw new Error("Email or password is not valid.");
-    // }
 
     // Prepare pass form data.
     const passFormInst = await passForm(passFormId);
@@ -262,11 +259,6 @@ async function signUp(
     };
     const colUser = db.collection(findName(CollectionKind.User));
     await colUser.insertOne(data);
-}
-
-export enum Gender
-{
-    Male, Female, Others
 }
 
 interface PassForm

@@ -1,10 +1,10 @@
-import {GraphqlDef, mergeGraphqlDefs} from "../pre/new-graphql";
+import {GraphqlDef, mergeGraphqlDefs} from "../pre/graphql-aggregate";
 import {Context} from "../pre/Context";
-import {dbObjProp} from "./graphqlSchema";
-import {CollectionKind} from "../pre/defines";
+import {dbObjProp} from "./graphql-schema";
 import mongo from "mongodb";
-import {AssociationId} from "../univ";
-import {StudentVerificationState} from "../pre/StudentVerificationState";
+import {StudentVerificationState} from "../pre/enums/StudentVerificationState";
+import {CollectionKind} from "../pre/enums/CollectionKind";
+import {AssociationId} from "../pre/simple-types";
 
 const userDefs: GraphqlDef[] = [
     {

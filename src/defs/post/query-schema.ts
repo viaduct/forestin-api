@@ -1,4 +1,4 @@
-import {GraphqlDef, mergeGraphqlDefs} from "../pre/new-graphql";
+import {GraphqlDef, mergeGraphqlDefs} from "../pre/graphql-aggregate";
 import {Context} from "../pre/Context";
 import {signUpEmailCheck, signUpPasswordCheck} from "../pre/login";
 

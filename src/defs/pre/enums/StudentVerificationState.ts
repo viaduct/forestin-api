@@ -36,6 +36,20 @@
 //     }
 // }
 
+/*
+const enumGenData: EnumGenData = {
+    name: "student verification state",
+    cols: ["kind", "name"],
+    indexableCols: ["kind", "name"],
+    value: [
+        ["pending", "PENDING"],
+        ["verified", "VERIFIED"],
+        ["rejected", "REJECTED"],
+    ],
+};
+
+ */
+
 
 const jsonData = '{"name":"student verification state","cols":["kind","name"],"indexableCols":["kind","name"],"value":[["pending","PENDING"],["verified","VERIFIED"],["rejected","REJECTED"]]}';
 const enumGenData = JSON.parse(jsonData);

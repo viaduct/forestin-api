@@ -1,7 +1,7 @@
-import {GraphqlDef, mergeGraphqlDefs} from "../pre/new-graphql";
-import {CollectionKind} from "../pre/defines";
-import {createStudentVerificationPropForGraphql} from "./userSchema";
-import {AssociationId} from "../univ";
+import {GraphqlDef, mergeGraphqlDefs} from "../pre/graphql-aggregate";
+import {createStudentVerificationPropForGraphql} from "./user-schema";
+import {CollectionKind} from "../pre/enums/CollectionKind";
+import {AssociationId} from "../pre/simple-types";
 
 const svDefs: GraphqlDef[] = [
     {

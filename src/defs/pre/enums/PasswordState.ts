@@ -25,6 +25,21 @@
 //     NO_LATIN_ALPHABET: PasswordState.NoLatinAlphabet as number,
 // };
 
+/*
+const enumGenData: EnumGenData = {
+    name: "password state",
+    cols: ["kind", "name"],
+    indexableCols: ["kind", "name"],
+    value: [
+        ["valid", "VALID"],
+        ["too short", "TOO_SHORT"],
+        ["no digit", "NO_DIGIT"],
+        ["no latin alphabet", "NO_LATIN_ALPHABET"],
+    ],
+};
+
+ */
+
 const jsonData = '{"name":"password state","cols":["kind","name"],"indexableCols":["kind","name"],"value":[["valid","VALID"],["too short","TOO_SHORT"],["no digit","NO_DIGIT"],["no latin alphabet","NO_LATIN_ALPHABET"]]}';
 const enumGenData = JSON.parse(jsonData);
 const indexedValue = enumGenData.value.map((row: any[], index: number)=>[index, ...row.slice(1)]);

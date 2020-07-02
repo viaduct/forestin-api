@@ -22,6 +22,19 @@
 //     INVALID: EmailState.Invalid as number,
 // };
 
+/*
+const enumGenData: EnumGenData = {
+    name: "email state",
+    cols: ["kind", "name"],
+    indexableCols: ["kind", "name"],
+    value: [
+        ["new", "NEW"],
+        ["used", "USED"],
+        ["invalid", "INVALID"],
+    ],
+};
+
+ */
 const jsonData = '{"name":"email state","cols":["kind","name"],"indexableCols":["kind","name"],"value":[["new","NEW"],["used","USED"],["invalid","INVALID"]]}';
 const enumGenData = JSON.parse(jsonData);
 const indexedValue = enumGenData.value.map((row: any[], index: number)=>[index, ...row.slice(1)]);

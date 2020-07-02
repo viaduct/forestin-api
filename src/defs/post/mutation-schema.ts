@@ -1,7 +1,7 @@
-import {GraphqlDef} from "../pre/new-graphql";
-import {mergeGraphqlDefs} from "../pre/new-graphql";
+import {GraphqlDef} from "../pre/graphql-aggregate";
+import {mergeGraphqlDefs} from "../pre/graphql-aggregate";
 import {Context} from "../pre/Context";
-import {toGraphqlUpload} from "../pre/graphql-upload";
+import {toGraphqlUpload} from "../pre/GraphqlUpload";
 import {signInWithContext, refreshTokenWithContext, signUpWithContext} from "../pre/login";
 
 const mutationDefs: GraphqlDef[] = [

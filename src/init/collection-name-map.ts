@@ -1,4 +1,4 @@
-import {CollectionKind} from "../defs/pre/defines";
+import {CollectionKind} from "../defs/pre/enums/CollectionKind";
 
 export interface FindName
 {
