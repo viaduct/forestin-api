@@ -20,6 +20,7 @@
     "typescript": "^3.7.5"
   },
   "dependencies": {
+    "@types/jsonwebtoken": "^8.5.0",
     "@types/mongodb": "^3.5.20",
     "@types/uuid": "^8.0.0",
     "apollo-server-express": "^2.14.3",
@@ -29,6 +30,7 @@
     "graphql-depth-limit": "^1.1.0",
     "graphql-upload": "^11.0.0",
     "graphql-validation-complexity": "^0.3.0",
+    "jsonwebtoken": "^8.5.1",
     "mongodb": "^3.5.8",
     "uuid": "^8.1.0"
   }

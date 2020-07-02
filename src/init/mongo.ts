@@ -13,6 +13,8 @@ export interface Mongo
 
 export async function init(options: MongoOptions): Promise<Mongo>
 {
+    console.log("Initializing the module mongo...");
+
     const mongoUrl = options.url;
     const mongoClient = await mongo.MongoClient.connect(
         mongoUrl,

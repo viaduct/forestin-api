@@ -5,6 +5,8 @@ export interface DotenvResult{}
 
 export async function init(options: DotenvOptions): Promise<DotenvResult>
 {
+    console.log("Initializing the module dotenv...");
+
     dotenv.config();
 
     return {};

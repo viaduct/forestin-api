@@ -2,10 +2,10 @@ import express from "express";
 import {ApolloServer} from "apollo-server-express";
 import depthLimit from "graphql-depth-limit";
 import {createComplexityLimitRule} from "graphql-validation-complexity";
-import {Context} from "../lib/Context";
-import {typeDefs, resolvers} from "../graphql-defs";
+import {Context} from "../defs/pre/Context";
 import http from "http";
-import {assignOrDefault} from "../lib/util";
+import {assignOrDefault} from "../defs/pre/actions/assign-or-default";
+import {root as graphqlRootSchema} from "../defs/post/graphql-schema";
 
 export interface ServerOptions
 {
@@ -18,11 +18,12 @@ export interface ServerOptions
 export interface Server
 {
     expressApp: any;
-    context: Context;
 }
 
 export async function init(options: ServerOptions): Promise<Server>
 {
+    console.log("Initializing the module graphql-express...");
+
     const contextInitializer = assignOrDefault(options.contextInitializer, ()=>{return {};});
     const givenContext = assignOrDefault(options.context, {});
     const port = options.port;
@@ -39,21 +40,21 @@ export async function init(options: ServerOptions): Promise<Server>
             }
         ),
     ];
-    function apolloServerInitContext(): Context
+    async function apolloServerInitContext(integration: any): Promise<Context>
     {
         return {
             ...givenContext,
-            ...contextInitializer(),
+            ...await contextInitializer(integration),
             // ... and add more context here, if required.
         } as Context;
     }
-    const context = apolloServerInitContext();
+    // const context = apolloServerInitContext();
 
     const apolloServerInst = new ApolloServer({
-        typeDefs: typeDefs,
-        resolvers: resolvers,
+        typeDefs: graphqlRootSchema.typeDefs,
+        resolvers: graphqlRootSchema.resolvers,
         validationRules: apolloServerValidationRules,
-        context: context,
+        context: apolloServerInitContext,
     });
 
     apolloServerInst.applyMiddleware({
@@ -81,6 +82,5 @@ export async function init(options: ServerOptions): Promise<Server>
 
     return {
         expressApp: expressApp,
-        context: context,
     };
 }
