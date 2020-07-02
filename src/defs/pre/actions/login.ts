@@ -54,19 +54,6 @@ export async function signIn(
     }
 }
 
-// export async function refreshTokenWithContext(
-//     context: Context,
-//     token: string,
-// ): Promise<string>
-// {
-//     return await refreshToken(
-//         context.privateKey,
-//         context.tokenLifetime,
-//         context.db,
-//         token,
-//     );
-// }
-
 export async function refreshToken(
     context: Context,
     token: string
