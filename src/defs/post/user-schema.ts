@@ -3,10 +3,7 @@ import {Context} from "../pre/Context";
 import mongo from "mongodb";
 import {StudentVerificationState} from "../pre/enums/StudentVerificationState";
 import {CollectionKind} from "../pre/enums/CollectionKind";
-import {AssociationId} from "../pre/simple-types";
 import {createDbObjPropForGraphql, dbObjProp} from "../pre/actions/db";
-import {associationKindToLevel, associationParentAtLevel} from "../pre/actions/association";
-import {AssociationLevelKind} from "../pre/enums/AssociationEnumKind";
 import {isUserVerifiedForUniv} from "../pre/actions/user";
 
 const userDefs: GraphqlDef[] = [

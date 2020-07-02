@@ -7,10 +7,19 @@ const enumGenData: EnumGenData = {
         ["user"],
         ["student verification"],
         ["association"],
+        ["group"],
+        ["group member"],
+        ["group post"],
+        ["group schedule"],
+        ["group qna"],
     ],
 };
 
- */
+*/
+
+const jsonData = '{"name":"collection kind","cols":["kind"],"indexableCols":["kind"],"value":[["user"],["student verification"],["association"],["group"],["group member"],["group post"],["group schedule"],["group qna"]]}';
+const enumGenData = JSON.parse(jsonData);
+const indexedValue = enumGenData.value.map((row: any[], index: number)=>[index, ...row.slice(1)]);
 
 /*
 function throwUnindexableCol(col: CollectionKindCol): never
@@ -19,28 +28,27 @@ function throwUnindexableCol(col: CollectionKindCol): never
 }
 */
 
+export enum CollectionKind
+{
+    User, StudentVerification, Association, Group, GroupMember, GroupPost, GroupSchedule, GroupQna
+}
+
+export enum CollectionKindCol
+{
+    Kind
+}
+
 /*
 export const indexableCols: Set<CollectionKindCol> = new Set(enumGenData.indexableCols);
 */
 
-
-const jsonData = '{"name":"collection kind","cols":["kind"],"indexableCols":["kind"],"value":[["user"],["student verification"],["association"]]}';
-const enumGenData = JSON.parse(jsonData);
-const indexedValue = enumGenData.value.map((row: any[], index: number) => [index, ...row.slice(1)]);
-
-export enum CollectionKind {
-    User, StudentVerification, Association
-}
-
-export enum CollectionKindCol {
-    Kind
-}
-
-function columnIndex(enumValue: CollectionKindCol): number {
+function columnIndex(enumValue: CollectionKindCol): number
+{
     return enumValue as number; // Or a mapper can be used.
 }
 
-export function findFromCollectionKind(from: CollectionKindCol, to: CollectionKindCol, value: any): any {
+export function findFromCollectionKind(from: CollectionKindCol, to: CollectionKindCol, value: any): any
+{
     /*
     if ( !indexableCols.has(from) )
     {
@@ -48,9 +56,10 @@ export function findFromCollectionKind(from: CollectionKindCol, to: CollectionKi
     }
     */
 
-    function rowOf(col: CollectionKindCol, value: any): any {
+    function rowOf(col: CollectionKindCol, value: any): any
+    {
         const colIndex = columnIndex(col);
-        return indexedValue.filter((row: any) => row[colIndex] == value)[0];
+        return indexedValue.filter((row: any)=>row[colIndex] == value)[0];
     }
 
     const row = rowOf(from, value);
@@ -68,10 +77,11 @@ export function findFromCollectionKind(from: CollectionKindCol, to: CollectionKi
     // }
 }
 
-export function createDictForCollectionKind(from: CollectionKindCol, to: CollectionKindCol): any {
+export function createDictForCollectionKind(from: CollectionKindCol, to: CollectionKindCol): any
+{
     return Object.fromEntries(
         indexedValue.map(
-            (row: any) => [row[columnIndex(from)], row[columnIndex(to)]]
+            (row: any)=>[row[columnIndex(from)], row[columnIndex(to)]]
         )
     );
 }

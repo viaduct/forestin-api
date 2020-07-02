@@ -17,7 +17,7 @@ export interface Group extends HasMongoId, HasIssuedDate, HasLastModifiedAt
 
 export interface GroupApplicationState
 {
-    applicableFrom?: Date;
-    applicableTo?: Date;
+    applicableFrom: Date;
+    applicableTo: Date;
     requiredAssociation: AssociationId;
 }
