@@ -6,6 +6,7 @@ import {
 import {createDictForPasswordState, PasswordStateCol} from "../pre/enums/PasswordState";
 import {createDictForEmailState, EmailStateCol} from "../pre/enums/EmailState";
 import {graphqlEnumDef} from "../pre/actions/enum";
+import {createDictForGender, GenderCol} from "../pre/enums/Gender";
 
 const defs: GraphqlDef[] = [
     graphqlEnumDef(
@@ -41,6 +42,14 @@ const defs: GraphqlDef[] = [
             EmailStateCol.Kind,
         ),
     ),
+    graphqlEnumDef(
+        "gender",
+        ["male", "female", "others"],
+        createDictForGender(
+            GenderCol.Name,
+            GenderCol.Kind,
+        ),
+    )
 ];
 
 export const graphqlEnum: GraphqlDef = mergeGraphqlDefs(defs);

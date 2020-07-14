@@ -7,6 +7,7 @@ import {query} from "./query-schema";
 import {studentVerification} from "./student-verification-schema";
 import {association} from "./association-schema";
 import {graphqlEnum} from "./enum-schema";
+import {file} from "./file-schema";
 import {jsDateToString, stringToJsDate} from "../pre/actions/date-cast";
 
 const rootDefs: GraphqlDef[] = [
@@ -51,5 +52,5 @@ const rootDefs: GraphqlDef[] = [
 ];
 
 export const root: GraphqlDef = mergeGraphqlDefs(
-    [mergeGraphqlDefs(rootDefs), user, mutation, query, studentVerification, association, graphqlEnum],
+    [mergeGraphqlDefs(rootDefs), user, mutation, query, studentVerification, association, graphqlEnum, file],
 );

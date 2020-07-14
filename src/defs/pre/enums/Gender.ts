@@ -27,6 +27,7 @@ export enum Gender
 {
     Male, Female, Others
 }
+export const genderNames = ["MALE", "FEMALE", "OTHERS"];
 
 export enum GenderCol
 {

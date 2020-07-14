@@ -1,4 +1,7 @@
 import {v4 as uuid} from "uuid";
+import {Context2} from "./context-2/Context2";
+import mongo from "mongodb";
+import {CollectionKind} from "./enums/CollectionKind";
 
 export interface UploadOptions
 {
@@ -100,4 +103,71 @@ export async function destroy(options: DestroyOptions): Promise<DestroyResult>
     return {
         s3Result: result,
     };
+}
+
+export enum FileUserKind
+{
+    UserAvatar,
+    StudentVerificationEvidence,
+}
+
+export interface FileUsedBy
+{
+    kind: FileUserKind;
+}
+
+export interface FileUsedByUserAvatar extends FileUsedBy
+{
+    kind: FileUserKind.UserAvatar;
+    userId: mongo.ObjectId;
+}
+
+export interface FileUsedByStudentVerification extends FileUsedBy
+{
+    kind: FileUserKind.StudentVerificationEvidence;
+    studentVerificationId: mongo.ObjectId;
+}
+
+export async function uploadFile(
+    c: Context2,
+    mime: string,
+    usedBy: FileUsedBy,
+    isStream: boolean,
+    streamOrBuffer: any
+): Promise<[string]>
+{
+    // Upload to s3.
+    const {key} = await upload({
+        s3: c.s3.s3,
+        bucketName: c.s3.defaultBucketName,
+        mime: mime,
+        ...(isStream ? {stream: streamOrBuffer} : {buffer: streamOrBuffer}),
+    });
+
+    // Upload to db.
+    const obj = {
+        _id: key,
+        mime: mime,
+        usedBy: usedBy,
+    };
+    const {insertedId} = await c.mongo.collec(CollectionKind.File).insertOne(obj);
+
+    // Return id.
+    return [insertedId.toString()];
+}
+
+export async function destroyFile(
+    c: Context2,
+    key: string
+)
+{
+    // Remove from db.
+    await c.mongo.collec(CollectionKind.File).deleteOne({_id: key});
+
+    // Remove from s3.
+    await destroy({
+        key: key,
+        s3: c.s3.s3,
+        bucketName: c.s3.defaultBucketName,
+    });
 }

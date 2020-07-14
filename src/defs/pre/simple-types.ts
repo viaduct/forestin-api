@@ -12,3 +12,4 @@ export type GroupName = string;
 export type Token = string;
 export type PrivateKey = string;
 export type RawMongoId = string;
+export type Password = string;

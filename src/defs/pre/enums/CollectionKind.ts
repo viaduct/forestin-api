@@ -4,6 +4,7 @@ const enumGenData: EnumGenData = {
     cols: ["kind"],
     indexableCols: ["kind"],
     value: [
+        ["file"],
         ["user"],
         ["student verification"],
         ["association"],
@@ -17,7 +18,7 @@ const enumGenData: EnumGenData = {
 
 */
 
-const jsonData = '{"name":"collection kind","cols":["kind"],"indexableCols":["kind"],"value":[["user"],["student verification"],["association"],["group"],["group member"],["group post"],["group schedule"],["group qna"]]}';
+const jsonData = '{"name":"collection kind","cols":["kind"],"indexableCols":["kind"],"value":[["file"],["user"],["student verification"],["association"],["group"],["group member"],["group post"],["group schedule"],["group qna"]]}';
 const enumGenData = JSON.parse(jsonData);
 const indexedValue = enumGenData.value.map((row: any[], index: number)=>[index, ...row.slice(1)]);
 
@@ -30,7 +31,7 @@ function throwUnindexableCol(col: CollectionKindCol): never
 
 export enum CollectionKind
 {
-    User, StudentVerification, Association, Group, GroupMember, GroupPost, GroupSchedule, GroupQna
+    File, User, StudentVerification, Association, Group, GroupMember, GroupPost, GroupSchedule, GroupQna
 }
 
 export enum CollectionKindCol

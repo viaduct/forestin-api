@@ -5,15 +5,12 @@ import {HasIssuedDate, HasLastModifiedAt, HasMongoId, HasSafeDelete} from "./bas
 import mongo from "mongodb";
 import {UserPermissionKind} from "../enums/UserPermissionKind";
 
-export interface User extends HasMongoId, HasIssuedDate, HasLastModifiedAt, HasSafeDelete
+export interface User extends HasMongoId, HasIssuedDate
 {
     name: UserName;
     email: Email;
     birthday: DayPrecDate;
     phoneNumber: PhoneNumber;
     gender: Gender;
-    permission: UserPermissionKind,
-
-    studentVerifications: StudentVerification[];
-    mainStudentVerification?: mongo.ObjectId;
+    primaryStudentVerification?: mongo.ObjectId,
 }

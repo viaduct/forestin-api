@@ -77,4 +77,3 @@ const associationDefs: GraphqlDef[] = [
 ];
 
 export const association: GraphqlDef = mergeGraphqlDefs(associationDefs);
-
