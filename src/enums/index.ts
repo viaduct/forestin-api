@@ -1,0 +1,1 @@
+export {CollecKind} from "./CollecKind";

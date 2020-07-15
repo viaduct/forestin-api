@@ -1,8 +1,8 @@
-import {CollectionKind} from "../defs/pre/enums/CollectionKind";
+import {CollecKind} from "../enums";
 
 export interface FindName
 {
-    (kind: CollectionKind): string;
+    (kind: CollecKind): string;
 }
 
 interface CollectionNameMapOptions
@@ -15,14 +15,14 @@ interface CollectionNameMap
 }
 
 const collectionKindData = [
-    [CollectionKind.User, "Users"],
-    [CollectionKind.StudentVerification, "StudentVerifications"],
-    [CollectionKind.Association, "Associations"],
+    [CollecKind.User, "Users"],
+    [CollecKind.StudentVerification, "StudentVerifications"],
+    [CollecKind.Association, "Associations"],
 ];
 
 const collectionKindToName = Object.fromEntries(collectionKindData);
 
-function findCollectionName(kind: CollectionKind): string
+function findCollectionName(kind: CollecKind): string
 {
     return collectionKindToName[kind];
 }

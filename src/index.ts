@@ -5,7 +5,7 @@ import * as awsS3ObjectGetInit from "./init/aws-s3-object-get";
 import * as collectionNameMapInit from "./init/collection-name-map";
 import * as dotenvInit from "./init/dotenv";
 
-import {tokenData} from "./defs/pre/TokenData";
+// import {tokenData} from "./defs/pre/TokenData";
 
 async function main()
 {
@@ -31,8 +31,9 @@ async function main()
         const authHeader = req.headers.authorization;
         if ( authHeader != null )
         {
-            const authData = await tokenData(process.env.ROLLOUT_PRIVATE_KEY!, authHeader);
-            return {user: authData};
+            // const authData = await tokenData(process.env.ROLLOUT_PRIVATE_KEY!, authHeader);
+            // return {user: authData};
+            return {}; // todo, replace this meaningless into the upper 2 lines of code later.
         }
         else
         {
@@ -51,6 +52,17 @@ async function main()
             tokenLifetime: process.env.ROLLOUT_LOGIN_TOKEN_LIFETIME!,
         },
         contextInitializer: handleAuth,
+        typeDefs: `
+            type Query 
+            {
+                fuck: Boolean
+            }
+        `, // todo
+        resolvers: {
+            Query: {
+                fuck: ()=>false
+            }
+        }, // todo
     });
 
     // Load AWS S3 object getter.
