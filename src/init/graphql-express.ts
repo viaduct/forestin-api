@@ -2,17 +2,16 @@ import express from "express";
 import {ApolloServer} from "apollo-server-express";
 import depthLimit from "graphql-depth-limit";
 import {createComplexityLimitRule} from "graphql-validation-complexity";
-import {Context} from "../defs/pre/Context";
 import http from "http";
-import {assignOrDefault} from "../defs/pre/actions/assign-or-default";
-import {root as graphqlRootSchema} from "../defs/post/graphql-schema";
 
 export interface ServerOptions
 {
     port: number;
     domain: string;
     contextInitializer?: Function | null;
-    context?: object | null;
+    context?: any | null;
+    typeDefs: string;
+    resolvers: any;
 }
 
 export interface Server
@@ -24,8 +23,8 @@ export async function init(options: ServerOptions): Promise<Server>
 {
     console.log("Initializing the module graphql-express...");
 
-    const contextInitializer = assignOrDefault(options.contextInitializer, ()=>{return {};});
-    const givenContext = assignOrDefault(options.context, {});
+    const contextInitializer = options.contextInitializer || (()=>new Object());
+    const givenContext = options.context || new Object();
     const port = options.port;
     const domain = options.domain;
 
@@ -40,19 +39,19 @@ export async function init(options: ServerOptions): Promise<Server>
             }
         ),
     ];
-    async function apolloServerInitContext(integration: any): Promise<Context>
+    async function apolloServerInitContext(integration: any): Promise<any>
     {
         return {
             ...givenContext,
             ...await contextInitializer(integration),
             // ... and add more context here, if required.
-        } as Context;
+        };
     }
     // const context = apolloServerInitContext();
 
     const apolloServerInst = new ApolloServer({
-        typeDefs: graphqlRootSchema.typeDefs,
-        resolvers: graphqlRootSchema.resolvers,
+        typeDefs: options.typeDefs,
+        resolvers: options.resolvers,
         validationRules: apolloServerValidationRules,
         context: apolloServerInitContext,
     });
