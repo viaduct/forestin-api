@@ -7,11 +7,18 @@ export interface GraphqlUpload
 
 export type RawGraphqlUpload = any;
 
-export function toGraphqlUpload(raw: any): GraphqlUpload
+export function toGraphqlUpload(raw: any | null): GraphqlUpload | null
 {
-    return {
-        name: raw.filename as string,
-        mime: raw.mimetype as string,
-        createReadStream: raw.createReadStream,
-    };
+    if ( raw != null )
+    {
+        return {
+            name: raw.filename as string,
+            mime: raw.mimetype as string,
+            createReadStream: raw.createReadStream,
+        };
+    }
+    else
+    {
+        return null;
+    }
 }

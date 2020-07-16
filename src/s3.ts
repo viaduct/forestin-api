@@ -106,15 +106,22 @@ export async function destroy(options: DestroyOptions): Promise<DestroyResult>
 
 export async function gqlUpload(
     c: Context,
-    uploadObject: GraphqlUpload,
-): Promise<string>
+    uploadObject: GraphqlUpload | null,
+): Promise<string | null>
 {
-    return (await upload({
-        s3: c.s3.s3,
-        bucketName: c.s3.defaultBucketName,
-        mime: uploadObject.mime,
-        stream: uploadObject.createReadStream(),
-    })).key;
+    if ( uploadObject != null )
+    {
+        return (await upload({
+            s3: c.s3.s3,
+            bucketName: c.s3.defaultBucketName,
+            mime: uploadObject.mime,
+            stream: uploadObject.createReadStream(),
+        })).key;
+    }
+    else
+    {
+        return null;
+    }
 }
 
 export async function gqlDestroy(

@@ -1,9 +1,11 @@
 import {Context} from "../../../context";
 import {
+    applyGroup,
+    createGroup,
     createStudentVerification,
     findUserByEmailPassword,
-    fixStudentVerification,
-    signUp as biSignUp,
+    fixStudentVerification, leaveGroup,
+    signUp as biSignUp, succeedGroupOwner, updateGroup, updateMember,
     updateUser
 } from "../../../bl";
 import {createTokenFromEmailPassword, refreshToken} from "../../../login-token";
@@ -72,4 +74,143 @@ export const resolver = {
     findPassword: (_: any, args: any, c: Context)=> {
         throwNimpl();
     },
+
+    createGroup: async (_: any, args: any, c: Context)=>{
+        const mappedArgs = {
+            ...args,
+
+            // uploads
+            poster: await gqlUpload(c, toGraphqlUpload(args.poster)),
+            backgroud: await gqlUpload(c, toGraphqlUpload(args.background)),
+        };
+        const newGroupId = await createGroup(c, args);
+        return {id: newGroupId};
+    },
+    updateGroup: async (_: any, args: any, c: Context)=>{
+        const mappedArgs = emptyWrap({
+            ...args,
+
+            groupId: undefined,
+
+            // helpers.
+            unsetPoster: undefined,
+            poster: undefined,
+            unsetBackground: undefined,
+            background: undefined,
+
+            // uploads
+            ...await convUnset(
+                c,
+                args,
+                [
+                    ["poster", "unsetPoster", true],
+                    ["background", "unsetBackground", true],
+                    ["applicationState", "unsetApplicationState", false],
+                ],
+            ),
+        });
+
+        await updateGroup(c, new mongo.ObjectId(args.groupId), args);
+    },
+    destroyGroup: ()=>throwNimpl(),
+    applyGroup: async (_: any, args: any, c: Context)=>{
+        await applyGroup(
+            c,
+            new mongo.ObjectId(args.groupId),
+            new mongo.ObjectId(args.userId),
+        );
+    },
+    leaveGroup: async (_: any, args: any, c: Context)=>{
+        await leaveGroup(
+            c,
+            new mongo.ObjectId(args.groupId),
+            new mongo.ObjectId(args.userId),
+        );
+    },
+    kickFromGroup: async (_: any, args: any, c: Context)=>{
+        await leaveGroup(
+            c,
+            new mongo.ObjectId(args.groupId),
+            new mongo.ObjectId(args.userId),
+        );
+    },
+    updateMember: async (_: any, args: any, c: Context)=>{
+        await updateMember(
+            c,
+            new mongo.ObjectId(args.groupId),
+            new mongo.ObjectId(args.userId),
+            args.newMemberKind,
+        );
+    },
+    succeedGroupOwner: async (_: any, args: any, c: Context)=>{
+        await succeedGroupOwner(
+            c,
+            new mongo.ObjectId(args.groupId),
+            new mongo.ObjectId(args.newOwnerId),
+        );
+    },
+};
+
+export function emptyWrap(a: any, nullToUndef = true): any
+{
+    const entries = Object.entries(a);
+    const result = entries
+        .filter(entry=>entry!==undefined)
+        .map(
+            (entry: any)=>{
+                if ( entry === null )
+                {
+                    return nullToUndef ? undefined : null;
+                }
+                else if ( typeof entry == "object" )
+                {
+                    return emptyWrap(entry, nullToUndef);
+                }
+                else
+                {
+                    return entry;
+                }
+            }
+        );
+    return Object.fromEntries(result);
+}
+
+export type UnsettableItem = [
+    string, // normal name
+    string, // unset name
+    boolean, // isFile
+]
+
+export async function convUnset(c: Context, a: any, uItems: UnsettableItem[]): Promise<any>
+{
+    return Object.fromEntries(
+        await Promise.all(
+            uItems.map(async ([name, unsetName, isFile]: UnsettableItem)=>{
+                let value: string | null | undefined;
+                if ( a[unsetName] )
+                {
+                    value = null;
+                }
+                else
+                {
+                    if ( a[name] != null )
+                    {
+                        if ( isFile )
+                        {
+                            value = await gqlUpload(c, toGraphqlUpload(a))
+                        }
+                        else
+                        {
+                            value = a[name];
+                        }
+                    }
+                    else
+                    {
+                        value = undefined;
+                    }
+                }
+                return [name, value];
+            })
+        )
+    );
 }
