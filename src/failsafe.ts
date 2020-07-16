@@ -41,7 +41,9 @@ export async function findField(
 
 export function createGqlFindField(
     colKind: CollecKind,
-    fieldName: string
+    fieldName: string,
+    wrapAsId: boolean = false,
+    isListWrap: boolean = false,
 ): Function
 {
     return async function(
@@ -50,11 +52,30 @@ export function createGqlFindField(
         c: Context
     )
     {
-        return await findField(
+        const maybeMongoId = await findField(
             c,
             colKind,
             new mongo.ObjectId(id),
             fieldName,
         );
+        if ( wrapAsId )
+        {
+            if ( isListWrap )
+            {
+                return maybeMongoId != null?
+                    {id: maybeMongoId.toString()}:
+                    null;
+            }
+            else
+            {
+                return maybeMongoId != null?
+                    maybeMongoId.map((oneId: mongo.ObjectId)=>{id: oneId.toString()}):
+                    null;
+            }
+        }
+        else
+        {
+            return maybeMongoId; // or not.
+        }
     };
 }

@@ -6,12 +6,10 @@ import * as collectionNameMapInit from "./init/collection-name-map";
 import * as dotenvInit from "./init/dotenv";
 
 // import {tokenData} from "./defs/pre/TokenData";
-import {signUp} from "./gql/mutations/sign-up";
 import {CollecKind} from "./enums";
 import {collecKindLen} from "./enums/CollecKind";
-import {handler as userHandler} from "./gql/types/user";
-import {handler as genderHandler} from "./gql/enums/gender";
-import {GraphQLScalarType} from "graphql";
+import {typeDefs} from "./gql/typeDefs";
+import {resolvers} from "./gql/resolvers";
 
 async function main()
 {
@@ -85,63 +83,8 @@ async function main()
             },
         },
         contextInitializer: handleAuth,
-        typeDefs: `
-scalar TimeStamp
-
-enum Gender
-{
-    MALE, FEMALE, OTHERS
-}
-
-type User
-{
-    id: ID!
-    issuedDate: TimeStamp!
-    name: String!
-    email: String!
-    birthday: String!
-    phoneNumber: String!
-    gender: Gender!
-    primaryStudentVerification: ID
-}
-
-type Query 
-{
-    user(id: ID!): User!
-}
-
-type Mutation
-{
-    signUp(
-        email: String!
-        password: String!
-        name: String!
-        birthday: String!
-        gender: Gender!
-        phoneNumber: String!
-    ): User!
-}
-        `, // todo
-        resolvers: {
-            User: userHandler,
-            Query: {
-                user: bypassId,
-            },
-            Mutation: {
-                signUp: signUp,
-            },
-            TimeStamp: new GraphQLScalarType({
-                name: "TimeStamp",
-                description: "Millisecond-precision timestamp. Can be used to initialize via new Date(timestamp).",
-                serialize: (value: Date): string=>{
-                    return value.getTime().toString();
-                },
-                parseValue: (value: string): Date=>{
-                    return new Date(Number(value));
-                },
-            }),
-            Gender: genderHandler,
-        }, // todo
+        typeDefs: typeDefs,
+        resolvers: resolvers,
     });
 
     // Load AWS S3 object getter.
@@ -156,7 +99,3 @@ type Mutation
 
 main();
 
-function bypassId(_: any, args: any): any
-{
-    return {id: args.id};
-}

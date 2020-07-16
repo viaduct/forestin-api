@@ -1,5 +1,6 @@
 import mongo from "mongodb";
 import aws from "aws-sdk";
+import {Token} from "./login-token";
 
 export interface Context
 {
@@ -63,5 +64,3 @@ export interface UnknownContextualTokenData extends ContextualTokenData
 {
     kind: ContextualTokenDataKind.Unauthorized;
 }
-
-export type Token = string;
