@@ -1,11 +1,16 @@
 import {Context} from "../../../context";
 import {
+    answerGroupQna,
     applyGroup,
-    createGroup,
+    createGroup, createGroupQna,
     createStudentVerification,
     findUserByEmailPassword,
-    fixStudentVerification, leaveGroup,
-    signUp as biSignUp, succeedGroupOwner, updateGroup, updateMember,
+    fixStudentVerification,
+    leaveGroup,
+    signUp as biSignUp,
+    succeedGroupOwner,
+    updateGroup, updateGroupQna,
+    updateMember,
     updateUser
 } from "../../../bl";
 import {createTokenFromEmailPassword, refreshToken} from "../../../login-token";
@@ -13,6 +18,7 @@ import mongo from "mongodb";
 import {throwNimpl} from "../../../errors";
 import {RawGraphqlUpload, toGraphqlUpload} from "../../../graphql-upload";
 import {gqlUpload} from "../../../s3";
+import {convUnset, emptyWrap} from "../util";
 
 export const resolver = {
     signUp: async (_: any, args: any, c: Context)=>{
@@ -149,68 +155,28 @@ export const resolver = {
             new mongo.ObjectId(args.newOwnerId),
         );
     },
+
+    createGroupQna: async (_: any, args: any, c: Context)=> {
+        const newArgs = {
+            group: new mongo.ObjectId(args.groupId),
+            author: new mongo.ObjectId(args.authorId),
+            body: args.body,
+        };
+        const newId = await createGroupQna(c, newArgs);
+        return {id: newId};
+    },
+    updateGroupQna: async (_: any, args: any, c: Context)=> {
+        const newArgs = {
+            body: args.body,
+        };
+        await updateGroupQna(c, new mongo.ObjectId(args.qnaId), newArgs);
+    },
+    destroyGroupQna: ()=>throwNimpl(),
+    answerGroupQna: async (_: any, args: any, c: Context)=> {
+        const newArgs = {
+            answer: args.answer,
+        };
+        await answerGroupQna(c, new mongo.ObjectId(args.qnaId), newArgs);
+    },
 };
 
-export function emptyWrap(a: any, nullToUndef = true): any
-{
-    const entries = Object.entries(a);
-    const result = entries
-        .filter(entry=>entry!==undefined)
-        .map(
-            (entry: any)=>{
-                if ( entry === null )
-                {
-                    return nullToUndef ? undefined : null;
-                }
-                else if ( typeof entry == "object" )
-                {
-                    return emptyWrap(entry, nullToUndef);
-                }
-                else
-                {
-                    return entry;
-                }
-            }
-        );
-    return Object.fromEntries(result);
-}
-
-export type UnsettableItem = [
-    string, // normal name
-    string, // unset name
-    boolean, // isFile
-]
-
-export async function convUnset(c: Context, a: any, uItems: UnsettableItem[]): Promise<any>
-{
-    return Object.fromEntries(
-        await Promise.all(
-            uItems.map(async ([name, unsetName, isFile]: UnsettableItem)=>{
-                let value: string | null | undefined;
-                if ( a[unsetName] )
-                {
-                    value = null;
-                }
-                else
-                {
-                    if ( a[name] != null )
-                    {
-                        if ( isFile )
-                        {
-                            value = await gqlUpload(c, toGraphqlUpload(a))
-                        }
-                        else
-                        {
-                            value = a[name];
-                        }
-                    }
-                    else
-                    {
-                        value = undefined;
-                    }
-                }
-                return [name, value];
-            })
-        )
-    );
-}

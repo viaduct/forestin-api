@@ -256,6 +256,61 @@ export async function groupMemberKind(
     }
 }
 
+export async function createGroupQna(
+    c: Context,
+    qnaData: any
+): Promise<mongo.ObjectId>
+{
+    const id = new mongo.ObjectId();
+    const now = new Date(Date.now()); // todo fixxxxxx this!
+    await create(
+        c,
+        CollecKind.GroupQna,
+        {
+            author: qnaData.author,
+            group: qnaData.group,
+            body: qnaData.body,
+
+            _id: id,
+            issuedDate: now,
+        },
+    );
+
+    return id;
+}
+
+export async function updateGroupQna(
+    c: Context,
+    id: mongo.ObjectId,
+    qnaData: any,
+)
+{
+    await update(
+        c,
+        CollecKind.GroupQna,
+        id,
+        {
+            body: qnaData.body,
+        },
+    );
+}
+
+export async function answerGroupQna(
+    c: Context,
+    id: mongo.ObjectId,
+    qnaData: any,
+)
+{
+    await update(
+        c,
+        CollecKind.GroupQna,
+        id,
+        {
+            answer: qnaData.answer,
+        },
+    );
+}
+
 export async function findUserByEmailPassword(
     c: Context,
     email: string,

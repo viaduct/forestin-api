@@ -98,6 +98,15 @@ type Category
     id: ID!
 }
 
+type GroupQna
+{
+    issuedDate: TimeStamp!
+    group: Group!
+    author: User!
+    body: String!
+    answer: String
+}
+
 type Query 
 {
     user(id: ID!): User!
@@ -187,6 +196,21 @@ type Mutation
     ): None
     findPassword(
         userId: ID!
+    ): None
+    
+    createGroupQna(
+        groupId: ID!
+        authorId: ID!
+        body: String!
+    ): GroupQna!
+    updateGroupQna(
+        qnaId: ID!
+        body: String
+    ): None
+    destroyGroupQna(id: ID!): None
+    answerGroupQna(
+        qnaId: ID!
+        answer: String!
     ): None
 }
 `;
