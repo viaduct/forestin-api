@@ -7,6 +7,7 @@ import {resolver as Group} from "./Group";
 import {resolver as GroupHistoryState} from "./GroupHistoryState";
 import {resolver as GroupMemberKind} from "./GroupMemberKind";
 import {resolver as GroupQna} from "./GroupQna";
+import {resolver as GroupSchedule} from "./GroupSchedule";
 import {resolver as StudentVerification} from "./StudentVerification";
 import {resolver as StudentVerificationState} from "./StudentVerificationState";
 import {resolver as TimeStamp} from "./TimeStamp";
@@ -22,6 +23,7 @@ export const resolvers: any = {
     GroupHistoryState,
     GroupMemberKind,
     GroupQna,
+    GroupSchedule,
     StudentVerification,
     StudentVerificationState,
     TimeStamp,

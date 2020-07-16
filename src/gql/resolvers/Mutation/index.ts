@@ -2,14 +2,14 @@ import {Context} from "../../../context";
 import {
     answerGroupQna,
     applyGroup,
-    createGroup, createGroupQna,
+    createGroup, createGroupQna, createGroupSchedule,
     createStudentVerification,
     findUserByEmailPassword,
     fixStudentVerification,
     leaveGroup,
     signUp as biSignUp,
     succeedGroupOwner,
-    updateGroup, updateGroupQna,
+    updateGroup, updateGroupQna, updateGroupSchedule,
     updateMember,
     updateUser
 } from "../../../bl";
@@ -90,7 +90,7 @@ export const resolver = {
             backgroud: await gqlUpload(c, toGraphqlUpload(args.background)),
         };
         const newGroupId = await createGroup(c, args);
-        return {id: newGroupId};
+        return {id: newGroupId.toString()};
     },
     updateGroup: async (_: any, args: any, c: Context)=>{
         const mappedArgs = emptyWrap({
@@ -163,7 +163,7 @@ export const resolver = {
             body: args.body,
         };
         const newId = await createGroupQna(c, newArgs);
-        return {id: newId};
+        return {id: newId.toString()};
     },
     updateGroupQna: async (_: any, args: any, c: Context)=> {
         const newArgs = {
@@ -178,5 +178,26 @@ export const resolver = {
         };
         await answerGroupQna(c, new mongo.ObjectId(args.qnaId), newArgs);
     },
+
+    createGroupSchedule: async (_: any, args: any, c: Context)=> {
+        const newArgs = {
+            group: new mongo.ObjectId(args.groupId),
+            title: args.title,
+            date: args.date,
+        };
+        const newId = await createGroupSchedule(c, newArgs);
+        return {id: newId.toString()};
+    },
+    updateGroupSchedule: async (_: any, args: any, c: Context)=>{
+        await updateGroupSchedule(
+            c,
+            new mongo.ObjectId(args.scheduleId),
+            {
+                title: args.title,
+                date: args.date,
+            },
+        );
+    },
+    destroyGroupSchedule: ()=>throwNimpl(),
 };
 

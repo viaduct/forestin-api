@@ -100,11 +100,20 @@ type Category
 
 type GroupQna
 {
+    id: ID!
     issuedDate: TimeStamp!
     group: Group!
     author: User!
     body: String!
     answer: String
+}
+
+type GroupSchedule
+{
+    id: ID!
+    group: Group!
+    title: String!
+    date: TimeStamp!
 }
 
 type Query 
@@ -212,5 +221,17 @@ type Mutation
         qnaId: ID!
         answer: String!
     ): None
+    
+    createGroupSchedule(
+        groupId: ID!
+        title: String!
+        date: TimeStamp!
+    ): GroupSchedule!
+    updateGroupSchedule(
+        scheduleId: ID!
+        title: String
+        date: TimeStamp
+    ): None
+    destroyGroupSchedule(id: ID!): None
 }
 `;

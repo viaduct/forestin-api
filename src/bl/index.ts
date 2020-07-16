@@ -311,6 +311,42 @@ export async function answerGroupQna(
     );
 }
 
+export async function createGroupSchedule(
+    c: Context,
+    scheduleData: any,
+): Promise<mongo.ObjectId>
+{
+    const id = new mongo.ObjectId();
+    await create(
+        c,
+        CollecKind.GroupSchedule,
+        {
+            _id: id,
+            group: scheduleData.group,
+            title: scheduleData.title,
+            date: scheduleData.date,
+        },
+    );
+    return id;
+}
+
+export async function updateGroupSchedule(
+    c: Context,
+    id: mongo.ObjectId,
+    sData: any,
+)
+{
+    await update(
+        c,
+        CollecKind.GroupSchedule,
+        id,
+        {
+            title: sData.title,
+            date: sData.date,
+        },
+    );
+}
+
 export async function findUserByEmailPassword(
     c: Context,
     email: string,
