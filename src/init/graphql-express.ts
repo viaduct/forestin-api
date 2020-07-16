@@ -32,7 +32,7 @@ export async function init(options: ServerOptions): Promise<Server>
 
     const apolloServerValidationRules = [
         depthLimit(5), // No more depth limit over 5.
-        createComplexityLimitRule( // No too-complex query.
+        createComplexityLimitRule( // No too-complex queries.
             1000,
             {
                 onCost: (cost: number)=>console.log("Query cost: " + cost + "."),

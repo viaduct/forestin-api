@@ -17,3 +17,5 @@ export enum CollecKind
     ChatMember,
     ChatMsg,
 }
+
+export const collecKindLen = 16;

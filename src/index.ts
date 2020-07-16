@@ -6,6 +6,12 @@ import * as collectionNameMapInit from "./init/collection-name-map";
 import * as dotenvInit from "./init/dotenv";
 
 // import {tokenData} from "./defs/pre/TokenData";
+import {signUp} from "./gql/mutations/sign-up";
+import {CollecKind} from "./enums";
+import {collecKindLen} from "./enums/CollecKind";
+import {handler as userHandler} from "./gql/types/user";
+import {handler as genderHandler} from "./gql/enums/gender";
+import {GraphQLScalarType} from "graphql";
 
 async function main()
 {
@@ -44,24 +50,97 @@ async function main()
         domain: process.env.ROLLOUT_DOMAIN!,
         port: Number(process.env.ROLLOUT_APOLLO_PORT!),
         context: {
-            s3: awsResult.s3,
-            db: mongoResult.db,
-            collectionNameMap: collectionNameMapResult.findName,
-            defaultS3BucketName: process.env.ROLLOUT_DEFAULT_S3_BUCKET_NAME!,
-            privateKey: process.env.ROLLOUT_PRIVATE_KEY!,
-            tokenLifetime: process.env.ROLLOUT_LOGIN_TOKEN_LIFETIME!,
+            mongo: {
+                db: mongoResult.db,
+                collec: (colKind: CollecKind)=>{
+                    const map = [
+                        "User",
+                        "StudentVerification",
+                        "Group",
+                        "GroupMember",
+                        "Association",
+                        "GroupHistory",
+                        "GroupHistoryCmt",
+                        "GroupHistoryLike",
+                        "GroupQna",
+                        "GroupSchedule",
+                        "GroupBill",
+                        "GroupVote",
+                        "GroupNotice",
+                        "ChatRoom",
+                        "ChatMember",
+                        "ChatMsg",
+                    ];
+                    console.assert(map.length == collecKindLen);
+                    return mongoResult.db.collection(map[colKind]);
+                },
+            },
+            s3: {
+                s3: awsResult.s3,
+                defaultBucketName: process.env.ROLLOUT_DEFAULT_S3_BUCKET_NAME!,
+            },
+            auth: {
+                privateKey: process.env.ROLLOUT_PRIVATE_KEY!,
+                tokenLifetime: process.env.ROLLOUT_LOGIN_TOKEN_LIFETIME!,
+            },
         },
         contextInitializer: handleAuth,
         typeDefs: `
-            type Query 
-            {
-                fuck: Boolean
-            }
+scalar TimeStamp
+
+enum Gender
+{
+    MALE, FEMALE, OTHERS
+}
+
+type User
+{
+    id: ID!
+    issuedDate: TimeStamp!
+    name: String!
+    email: String!
+    birthday: String!
+    phoneNumber: String!
+    gender: Gender!
+    primaryStudentVerification: ID
+}
+
+type Query 
+{
+    user(id: ID!): User!
+}
+
+type Mutation
+{
+    signUp(
+        email: String!
+        password: String!
+        name: String!
+        birthday: String!
+        gender: Gender!
+        phoneNumber: String!
+    ): User!
+}
         `, // todo
         resolvers: {
+            User: userHandler,
             Query: {
-                fuck: ()=>false
-            }
+                user: bypassId,
+            },
+            Mutation: {
+                signUp: signUp,
+            },
+            TimeStamp: new GraphQLScalarType({
+                name: "TimeStamp",
+                description: "Millisecond-precision timestamp. Can be used to initialize via new Date(timestamp).",
+                serialize: (value: Date): string=>{
+                    return value.getTime().toString();
+                },
+                parseValue: (value: string): Date=>{
+                    return new Date(Number(value));
+                },
+            }),
+            Gender: genderHandler,
         }, // todo
     });
 
@@ -76,3 +155,8 @@ async function main()
 }
 
 main();
+
+function bypassId(_: any, args: any): any
+{
+    return {id: args.id};
+}
