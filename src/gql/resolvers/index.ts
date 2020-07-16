@@ -6,6 +6,7 @@ import {resolver as Gender} from "./Gender";
 import {resolver as Group} from "./Group";
 import {resolver as GroupHistoryState} from "./GroupHistoryState";
 import {resolver as GroupMemberKind} from "./GroupMemberKind";
+import {resolver as GroupNotice} from "./GroupNotice";
 import {resolver as GroupQna} from "./GroupQna";
 import {resolver as GroupSchedule} from "./GroupSchedule";
 import {resolver as StudentVerification} from "./StudentVerification";
@@ -22,6 +23,7 @@ export const resolvers: any = {
     Group,
     GroupHistoryState,
     GroupMemberKind,
+    GroupNotice,
     GroupQna,
     GroupSchedule,
     StudentVerification,

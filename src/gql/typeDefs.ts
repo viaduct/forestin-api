@@ -116,6 +116,20 @@ type GroupSchedule
     date: TimeStamp!
 }
 
+type GroupNotice
+{
+    id: ID!
+    issuedDate: TimeStamp!
+    lastModifiedAt: TimeStamp!
+    group: Group!
+    author: User!
+    isUrgent: Boolean!
+    title: String!
+    body: String!
+    files: [ID!]!
+    images: [ID!]!
+}
+
 type Query 
 {
     user(id: ID!): User!
@@ -233,5 +247,26 @@ type Mutation
         date: TimeStamp
     ): None
     destroyGroupSchedule(id: ID!): None
+    
+    createGroupNotice(
+        groupId: ID!
+        authorId: ID!
+        isUrgent: Boolean!
+        title: String!
+        body: String!
+        files: [Upload!]!
+        images: [Upload!]!
+    ): GroupNotice!
+    updateGroupNotice(
+        noticeId: ID!
+        isUrgent: Boolean
+        title: String
+        body: String
+        filesAdded: [Upload!]
+        filesRemoved: [ID!]
+        imagesAdded: [Upload!]
+        imagesRemoved: [ID!]
+    ): None
+    destroyGroupNotice(id: ID!): None
 }
 `;

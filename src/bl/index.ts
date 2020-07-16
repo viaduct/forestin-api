@@ -4,6 +4,7 @@ import {create, update} from "../failsafe";
 import {CollecKind} from "../enums";
 import {StudentVerificationState} from "../enums/StudentVerificationState";
 import {GroupMemberKind} from "../enums/GroupMemberKind";
+import {emptyWrap} from "../gql/resolvers/util";
 
 export async function signUp(c: Context, userData: any): Promise<mongo.ObjectId>
 {
@@ -345,6 +346,95 @@ export async function updateGroupSchedule(
             date: sData.date,
         },
     );
+}
+
+export async function createGroupNotice(
+    c: Context,
+    data: any
+): Promise<mongo.ObjectId>
+{
+    const id = new mongo.ObjectId();
+    const now = new Date(Date.now());
+    await create(
+        c,
+        CollecKind.GroupNotice,
+        {
+            _id: id,
+
+            issuedDate: now,
+            lastModifiedAt: now,
+
+            group: data.group,
+            author: data.author,
+
+            isUrgent: data.isUrgent,
+            title: data.title,
+            body: data.body,
+            files: data.files,
+            images: data.images,
+        },
+    );
+    return id;
+}
+
+export async function updateGroupNotice(
+    c: Context,
+    id: mongo.ObjectId,
+    data: any,
+)
+{
+    const now = new Date(Date.now());
+    // todo DANGEROUS! use failsafe version later.
+    const updates = [
+        {
+            $set: emptyWrap({
+                lastModifiedAt: now,
+                isUrgent: data.isUrgent,
+                title: data.title,
+                body: data.body,
+            }),
+        },
+        ...(
+            data.filesAdded != null ?
+                data.filesAdded.map(
+                    (fileAdded: string)=>({
+                        $addToSet: {files: fileAdded}
+                    })
+                ):
+                []
+        ),
+        ...(
+            data.filesRemoved != null ?
+                data.filesRemoved.map(
+                    (fileRemoved: string)=>({
+                        $pull: {files: fileRemoved}
+                    })
+                ):
+                []
+        ),
+        ...(
+            data.imagesAdded != null ?
+                data.imagesAdded.map(
+                    (imageAdded: string)=>({
+                        $addToSet: {images: imageAdded}
+                    })
+                ):
+                []
+        ),
+        ...(
+            data.imagesREmoved != null ?
+                data.imagesREmoved.map(
+                    (imageRemoved: string)=>({
+                        $pull: {images: imageRemoved}
+                    })
+                ):
+                []
+        ),
+    ];
+
+    await Promise.all(updates.map(
+        (oneUpdate: any)=>c.mongo.collec(CollecKind.GroupNotice).updateOne({_id: id}, oneUpdate)
+    ));
 }
 
 export async function findUserByEmailPassword(

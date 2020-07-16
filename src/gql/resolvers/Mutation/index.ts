@@ -2,14 +2,14 @@ import {Context} from "../../../context";
 import {
     answerGroupQna,
     applyGroup,
-    createGroup, createGroupQna, createGroupSchedule,
+    createGroup, createGroupNotice, createGroupQna, createGroupSchedule,
     createStudentVerification,
     findUserByEmailPassword,
     fixStudentVerification,
     leaveGroup,
     signUp as biSignUp,
     succeedGroupOwner,
-    updateGroup, updateGroupQna, updateGroupSchedule,
+    updateGroup, updateGroupNotice, updateGroupQna, updateGroupSchedule,
     updateMember,
     updateUser
 } from "../../../bl";
@@ -199,5 +199,68 @@ export const resolver = {
         );
     },
     destroyGroupSchedule: ()=>throwNimpl(),
+
+    /*
+        createGroupNotice(
+        groupId: ID!
+        author: ID!
+        isUrgent: Boolean!
+        title: String!
+        body: String!
+        files: [Upload!]!
+        images: [Upload!]!
+    ): GroupNotice!
+    updateGroupNotice(
+        noticeId: ID!
+        isUrgent: Boolean
+        title: String
+        body: String
+        filesAdded: [Upload!]
+        filesRemoved: [ID!]
+        imagesAdded: [Upload!]
+        imagesRemoved: [ID!]
+    ): None
+    destroyGroupNotice(id: ID!): None
+     */
+    createGroupNotice: async (_: any, args: any, c: Context)=> {
+        const newId = await createGroupNotice(
+            c,
+            {
+                group: new mongo.ObjectId(args.groupId),
+                author: new mongo.ObjectId(args.authorId),
+                isUrgent: args.isUrgent,
+                title: args.title,
+                body: args.body,
+                files: await Promise.all(args.files.map(
+                    (file: RawGraphqlUpload)=>gqlUpload(c, toGraphqlUpload(file))
+                )),
+                images: await Promise.all(args.images.map(
+                    (image: RawGraphqlUpload)=>gqlUpload(c, toGraphqlUpload(image))
+                )),
+            },
+        );
+        return {id: newId.toString};
+    },
+    updateGroupNotice: async (_: any, args: any, c: Context)=>{
+        await updateGroupNotice(
+            c,
+            new mongo.ObjectId(args.noticeId),
+            {
+                isUrgent: args.isUrgent,
+                title: args.title,
+                body: args.body,
+
+                filesAdded: await Promise.all(args.filesAdded.map(
+                    (file: RawGraphqlUpload)=>gqlUpload(c, toGraphqlUpload(file))
+                )),
+                imagesAdded: await Promise.all(args.imagesAdded.map(
+                    (image: RawGraphqlUpload)=>gqlUpload(c, toGraphqlUpload(image))
+                )),
+                filesRemoved: args.filesRemoved,
+                imagesRemoved: args.imagesRemoved,
+            },
+        );
+    },
+    destroyGroupNotice: ()=>throwNimpl(),
 };
 
