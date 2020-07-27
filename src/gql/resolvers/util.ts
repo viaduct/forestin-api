@@ -2,11 +2,6 @@ import {Context} from "../../context";
 import {gqlUpload} from "../../s3";
 import {toGraphqlUpload} from "../../graphql-upload";
 
-export function bypassId(_: any, args: any): any
-{
-    return {id: args.id};
-}
-
 export function emptyWrap(a: any, nullToUndef = true): any {
     const entries = Object.entries(a);
     const result = entries

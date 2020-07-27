@@ -33,6 +33,6 @@
     "graphql-validation-complexity": "^0.3.0",
     "jsonwebtoken": "^8.5.1",
     "mongodb": "^3.5.8",
-    "uuid": "^8.1.0"
+    "uuid": "^8.0.0"
   }
 }

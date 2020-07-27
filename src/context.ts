@@ -9,6 +9,7 @@ export interface Context
     auth: AuthContext;
     token: TokenContext;
     contextualTokenData: ContextualTokenDataContext;
+    now: Now;
 }
 
 export interface MongoContext
@@ -63,4 +64,9 @@ export interface UserContextualTokenData extends ContextualTokenData
 export interface UnknownContextualTokenData extends ContextualTokenData
 {
     kind: ContextualTokenDataKind.Unauthorized;
+}
+
+export interface Now
+{
+    now(): Date;
 }

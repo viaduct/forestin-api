@@ -2,14 +2,20 @@ import {Context} from "../../../context";
 import {
     answerGroupQna,
     applyGroup,
-    createGroup, createGroupNotice, createGroupQna, createGroupSchedule,
+    createGroup,
+    createGroupNotice,
+    createGroupQna,
+    createGroupSchedule,
     createStudentVerification,
     findUserByEmailPassword,
     fixStudentVerification,
     leaveGroup,
     signUp as biSignUp,
     succeedGroupOwner,
-    updateGroup, updateGroupNotice, updateGroupQna, updateGroupSchedule,
+    updateGroup,
+    updateGroupNotice,
+    updateGroupQna,
+    updateGroupSchedule,
     updateMember,
     updateUser
 } from "../../../bl";
@@ -19,6 +25,19 @@ import {throwNimpl} from "../../../errors";
 import {RawGraphqlUpload, toGraphqlUpload} from "../../../graphql-upload";
 import {gqlUpload} from "../../../s3";
 import {convUnset, emptyWrap} from "../util";
+import {externReqHandler, gqlWrap, throwInvalid, throwUnauth} from "../../../scratch";
+import {caster, CasterKind, genObjCaster} from "../../../type-cast";
+import {authArgGet, authQueryFac, AuthQueryKind, authUserSubjectId} from "../../../auth";
+import {
+    castGroupVote,
+    createChatRoomOfGroup,
+    createChatRoomOfGroupQna,
+    createGroupVote,
+    destroyChatRoom,
+    destroyGroupVote, postChatMsg, postFileChatMsg,
+    updateChatRoom,
+    updateGroupVote
+} from "../../../bl2";
 
 export const resolver = {
     signUp: async (_: any, args: any, c: Context)=>{
@@ -200,28 +219,6 @@ export const resolver = {
     },
     destroyGroupSchedule: ()=>throwNimpl(),
 
-    /*
-        createGroupNotice(
-        groupId: ID!
-        author: ID!
-        isUrgent: Boolean!
-        title: String!
-        body: String!
-        files: [Upload!]!
-        images: [Upload!]!
-    ): GroupNotice!
-    updateGroupNotice(
-        noticeId: ID!
-        isUrgent: Boolean
-        title: String
-        body: String
-        filesAdded: [Upload!]
-        filesRemoved: [ID!]
-        imagesAdded: [Upload!]
-        imagesRemoved: [ID!]
-    ): None
-    destroyGroupNotice(id: ID!): None
-     */
     createGroupNotice: async (_: any, args: any, c: Context)=> {
         const newId = await createGroupNotice(
             c,
@@ -262,5 +259,181 @@ export const resolver = {
         );
     },
     destroyGroupNotice: ()=>throwNimpl(),
+
+    createGroupVote: gqlWrap(externReqHandler({
+        caster: genObjCaster([
+            ["groupId", caster(CasterKind.ToMongoId)],
+            ["author", caster(CasterKind.ToMongoId)],
+            ["choices", caster(CasterKind.UnsafeBypass)],
+            ["targets", caster(CasterKind.UnsafeBypass)],
+            ["allowMultipleChoices", caster(CasterKind.UnsafeBypass)],
+            ["isAnonymous", caster(CasterKind.UnsafeBypass)],
+            ["title", caster(CasterKind.UnsafeBypass)],
+            ["body", caster(CasterKind.UnsafeBypass)],
+            ["deadline", caster(CasterKind.UnsafeBypass)],
+        ]),
+        castErrorHandler: ()=>{throw {kind: "INVALID"}},
+        authPolicy: authQueryFac(AuthQueryKind.Or)([
+            authQueryFac(AuthQueryKind.IsAdmin)(),
+            authQueryFac(AuthQueryKind.And)([
+                authQueryFac(AuthQueryKind.IsGroupManageable)(authArgGet("groupId")),
+                authQueryFac(AuthQueryKind.IsTheUser)(authArgGet("author")),
+            ]),
+        ]),
+        authErrorHandler: ()=>{throw {kind: "UNAUTHORIZED"}},
+        uploadPaths: [],
+        businessLogic: createGroupVote,
+    })),
+    updateGroupVote: gqlWrap(externReqHandler({
+        caster: genObjCaster([
+            ["voteId", caster(CasterKind.ToMongoId)],
+            ["isAnonymous", caster(CasterKind.UnsafeBypass)],
+            ["title", caster(CasterKind.UnsafeBypass)],
+            ["body", caster(CasterKind.UnsafeBypass)],
+            ["deadline", caster(CasterKind.UnsafeBypass)],
+        ]),
+        castErrorHandler: throwInvalid,
+        authPolicy: authQueryFac(AuthQueryKind.Or)([
+            authQueryFac(AuthQueryKind.IsAdmin)(),
+            authQueryFac(AuthQueryKind.IsGroupManageable)(authArgGet("groupId")),
+        ]),
+        authErrorHandler: throwUnauth,
+        uploadPaths: [],
+        businessLogic: updateGroupVote,
+    })),
+    destroyGroupVote: gqlWrap(externReqHandler({
+        caster: genObjCaster([
+            ["id", caster(CasterKind.ToMongoId)],
+        ]),
+        castErrorHandler: throwInvalid,
+        authPolicy: authQueryFac(AuthQueryKind.Or)([
+            authQueryFac(AuthQueryKind.IsAdmin)(),
+            authQueryFac(AuthQueryKind.IsGroupManageable)(authArgGet("groupId")),
+        ]),
+        authErrorHandler: throwUnauth,
+        uploadPaths: [],
+        businessLogic: destroyGroupVote,
+    })),
+    castGroupVote: gqlWrap(externReqHandler({
+        caster: genObjCaster([
+            ["voteId", caster(CasterKind.ToMongoId)],
+            ["userId", caster(CasterKind.ToMongoId)],
+            ["choices", caster(CasterKind.UnsafeBypass)],
+        ]),
+        castErrorHandler: throwInvalid,
+        authPolicy: authQueryFac(AuthQueryKind.Or)([
+            authQueryFac(AuthQueryKind.IsAdmin)(),
+            authQueryFac(AuthQueryKind.And)([
+                authQueryFac(AuthQueryKind.IsVoteMember)(authArgGet("voteId")),
+                authQueryFac(AuthQueryKind.IsTheUser)(authArgGet("userId")),
+            ]),
+        ]),
+        authErrorHandler: throwUnauth,
+        uploadPaths: [],
+        businessLogic: castGroupVote,
+    })),
+
+    createChatRoomOfGroup: gqlWrap(externReqHandler({
+        caster: genObjCaster([
+            ["groupId", caster(CasterKind.ToMongoId)],
+            ["title", caster(CasterKind.UnsafeBypass)],
+            ["initialMembers", caster(CasterKind.ToMongoIds)],
+        ]),
+        castErrorHandler: throwInvalid,
+        authPolicy: authQueryFac(AuthQueryKind.Or)([
+            authQueryFac(AuthQueryKind.IsAdmin)(),
+            authQueryFac(AuthQueryKind.And)([
+                authQueryFac(AuthQueryKind.IsGroupManageable)(authArgGet("groupId")),
+            ]),
+        ]),
+        authErrorHandler: throwUnauth,
+        uploadPaths: [],
+        businessLogic: createChatRoomOfGroup,
+    })),
+    createChatRoomOfGroupQna: gqlWrap(externReqHandler({
+        caster: genObjCaster([
+            ["groupId", caster(CasterKind.ToMongoId)],
+            ["title", caster(CasterKind.UnsafeBypass)],
+            ["userId", caster(CasterKind.ToMongoId)],
+        ]),
+        castErrorHandler: throwInvalid,
+        authPolicy: authQueryFac(AuthQueryKind.Or)([
+            authQueryFac(AuthQueryKind.IsAdmin)(),
+            authQueryFac(AuthQueryKind.And)([
+                authQueryFac(AuthQueryKind.IsTheUser)(authArgGet("userId")),
+            ]),
+        ]),
+        authErrorHandler: throwUnauth,
+        uploadPaths: [],
+        businessLogic: createChatRoomOfGroupQna,
+    })),
+    updateChatRoom: gqlWrap(externReqHandler({
+        caster: genObjCaster([
+            ["chatRoomId", caster(CasterKind.ToMongoId)],
+            ["title", caster(CasterKind.UnsafeBypass)],
+            ["membersAdded", caster(CasterKind.ToMongoIds)],
+            ["membersRemoved", caster(CasterKind.ToMongoIds)],
+        ]),
+        castErrorHandler: throwInvalid,
+        authPolicy: authQueryFac(AuthQueryKind.Or)([
+            authQueryFac(AuthQueryKind.IsAdmin)(),
+            authQueryFac(AuthQueryKind.IsGroupManageable)(authUserSubjectId()),
+            authQueryFac(AuthQueryKind.And)([
+                authQueryFac(AuthQueryKind.OnlyContainsTheUser)(authArgGet("membersRemoved")),
+            ]),
+        ]),
+        authErrorHandler: throwUnauth,
+        uploadPaths: [],
+        businessLogic: updateChatRoom,
+    })),
+    destroyChatRoom: gqlWrap(externReqHandler({
+        caster: genObjCaster([
+            ["id", caster(CasterKind.ToMongoId)],
+        ]),
+        castErrorHandler: throwInvalid,
+        authPolicy: authQueryFac(AuthQueryKind.Or)([
+            authQueryFac(AuthQueryKind.IsAdmin)(),
+            authQueryFac(AuthQueryKind.IsGroupManageable)(authUserSubjectId()),
+        ]),
+        authErrorHandler: throwUnauth,
+        uploadPaths: [],
+        businessLogic: destroyChatRoom,
+    })),
+    postChatMsg: gqlWrap(externReqHandler({
+        caster: genObjCaster([
+            ["chatRoomId", caster(CasterKind.ToMongoId)],
+            ["authorId", caster(CasterKind.ToMongoId)],
+            ["textBody", caster(CasterKind.UnsafeBypass)],
+        ]),
+        castErrorHandler: throwInvalid,
+        authPolicy: authQueryFac(AuthQueryKind.Or)([
+            authQueryFac(AuthQueryKind.IsAdmin)(),
+            authQueryFac(AuthQueryKind.And)([
+                authQueryFac(AuthQueryKind.IsChatRoomMember)(authArgGet("authorId")),
+                authQueryFac(AuthQueryKind.IsTheUser)(authArgGet("authorId")),
+            ]),
+        ]),
+        authErrorHandler: throwUnauth,
+        uploadPaths: [],
+        businessLogic: postChatMsg,
+    })),
+    postFileChatMsg: gqlWrap(externReqHandler({
+        caster: genObjCaster([
+            ["chatRoomId", caster(CasterKind.ToMongoId)],
+            ["authorId", caster(CasterKind.ToMongoId)],
+            ["file", caster(CasterKind.UnsafeBypass)],
+        ]),
+        castErrorHandler: throwInvalid,
+        authPolicy: authQueryFac(AuthQueryKind.Or)([
+            authQueryFac(AuthQueryKind.IsAdmin)(),
+            authQueryFac(AuthQueryKind.And)([
+                authQueryFac(AuthQueryKind.IsChatRoomMember)(authArgGet("authorId")),
+                authQueryFac(AuthQueryKind.IsTheUser)(authArgGet("authorId")),
+            ]),
+        ]),
+        authErrorHandler: throwUnauth,
+        uploadPaths: ["file"],
+        businessLogic: postFileChatMsg,
+    })),
 };
 

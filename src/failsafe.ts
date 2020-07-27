@@ -63,13 +63,13 @@ export function createGqlFindField(
             if ( isListWrap )
             {
                 return maybeMongoId != null?
-                    {id: maybeMongoId.toString()}:
+                    maybeMongoId.map((oneId: mongo.ObjectId)=>{id: oneId.toString()}):
                     null;
             }
             else
             {
                 return maybeMongoId != null?
-                    maybeMongoId.map((oneId: mongo.ObjectId)=>{id: oneId.toString()}):
+                    {id: maybeMongoId.toString()}:
                     null;
             }
         }

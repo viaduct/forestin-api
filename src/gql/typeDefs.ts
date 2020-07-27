@@ -46,6 +46,18 @@ type GroupApplicationState
     requiredAssociation: ID
 }
 
+input BankAccountInput
+{
+    name: String!
+    number: String!
+}
+
+type BankAccount
+{
+    name: String!
+    number: String!
+}
+
 type Group
 {
     id: ID!
@@ -130,9 +142,152 @@ type GroupNotice
     images: [ID!]!
 }
 
+type GroupHistory
+{
+    id: ID!
+    issuedDate: TimeStamp!
+    lastModifiedAt: TimeStamp!
+    group: Group!
+    author: User!
+    state: GroupHistoryState!
+    title: String!
+    body: String!
+    images: String!
+}
+
+type GroupHistoryCmt
+{
+    id: ID!
+    history: GroupHistory!
+    issuedDate: TimeStamp!
+    lastModifiedAt: TimeStamp!
+    author: User!
+    body: String!
+}
+
+type GroupBill
+{
+    id: ID!
+    issuedDate: TimeStamp!
+    lastModifiedAt: TimeStamp!
+    group: Group!
+    author: User!
+    targets: [User!]!
+    amount: Int!
+    targetsPaid: [User!]!
+    title: String!
+    body: String!
+    deadline: TimeStamp!
+    receivingAccount: BankAccount
+    kakaoUrl: String
+    tossUrl: String
+    isClosed: Boolean!
+}
+
+type VoteDecision
+{
+    voter: User!
+    choices: [ID!]!
+}
+
+type VoteChoice
+{
+    id: ID!
+    value: String!
+}
+
+type GroupVote
+{
+    id: ID!
+    issuedDate: TimeStamp!
+    lastModifiedAt: TimeStamp!
+    group: User!
+    author: User!
+    choices: [VoteChoice!]!
+    targets: [User!]!
+    allowMultipleChoices: Boolean!
+    isAnonymous: Boolean!
+    decisions: [VoteDecision!]!
+    title: String!
+    body: String!
+    deadline: TimeStamp!
+}
+
+enum ChatHostKind
+{
+    GROUP, GROUP_QNA
+}
+
+interface ChatHost
+{
+    kind: ChatHostKind
+}
+
+type ChatHostGroup implements ChatHost
+{
+    kind: ChatHostKind
+    group: ID!
+}
+
+type ChatHostGroupQna implements ChatHost
+{
+    kind: ChatHostKind
+    group: ID!
+    user: ID!
+}
+
+type ChatRoom
+{
+    id: ID!
+    issuedDate: TimeStamp!
+    title: String!
+    host: ChatHost!
+}
+
+type ChatMsg
+{
+    id: ID!
+    issuedDate: TimeStamp!
+    lastModifiedAt: TimeStamp!
+    chatRoom: ChatRoom!
+    author: User!
+    body: ChatMsgBody!
+}
+
+enum ChatMsgBodyKind
+{
+    TEXT, FILE
+}
+
+interface ChatMsgBody
+{
+    kind: ChatMsgBodyKind!
+}
+
+type TextChatMsgBody implements ChatMsgBody
+{
+    kind: ChatMsgBodyKind!
+    body: String!
+}
+
+type FileChatMsgBody implements ChatMsgBody
+{
+    kind: ChatMsgBodyKind!
+    body: ID!
+}
+
 type Query 
 {
-    user(id: ID!): User!
+    user(id: ID!): User
+    groupBill(id: ID!): GroupBill
+    group(id: ID!): Group
+    groupVote(id: ID!): GroupVote
+    chatRoom(id: ID!): ChatRoom
+    chatMsg(id: ID!): ChatMsg
+    groupSchedule(id: ID!): GroupSchedule
+    groupNotice(id: ID!): GroupNotice
+    groupHistory(id: ID!): GroupHistory
+    groupQna(id: ID!): GroupQna
 }
 
 type Mutation
@@ -268,5 +423,58 @@ type Mutation
         imagesRemoved: [ID!]
     ): None
     destroyGroupNotice(id: ID!): None
+
+    createGroupVote(
+        groupId: ID!
+        author: ID!
+        choices: [String!]!
+        targets: [ID!]!
+        allowMultipleChoices: Boolean!
+        isAnonymous: Boolean!
+        title: String!
+        body: String!
+        deadline: TimeStamp!
+    ): GroupVote!
+    updateGroupVote(
+        voteId: ID!
+        isAnonymous: Boolean
+        title: String
+        body: String
+        deadline: TimeStamp
+    ): None
+    destroyGroupVote(id: ID!): None
+    castGroupVote(
+        voteId: ID!
+        userId: ID!
+        choices: [ID!]
+    ): None
+    
+    createChatRoomOfGroup(
+        groupId: ID!
+        title: String!
+        initialMembers: [ID!]!
+    ): ChatRoom!
+    createChatRoomOfGroupQna(
+        groupId: ID!
+        title: String!
+        userId: ID!
+    ): ChatRoom!
+    updateChatRoom(
+        chatRoomId: ID!
+        title: String
+        membersAdded: [ID!]
+        membersRemoved: [ID!]
+    ): None
+    destroyChatRoom(id: ID!): None
+    postChatMsg(
+        chatRoomId: ID!
+        authorId: ID!
+        textBody: String!
+    ): ChatMsg!
+    postFileChatMsg(
+        chatRoomId: ID!
+        authorId: ID!
+        file: Upload!
+    ): ChatMsg!
 }
 `;
