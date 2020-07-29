@@ -11,6 +11,7 @@ import {collecKindLen} from "./enums/CollecKind";
 import {typeDefs} from "./gql/typeDefs";
 import {resolvers} from "./gql/resolvers";
 import {ContextualTokenDataKind} from "./context";
+import {parseToken} from "./login-token";
 
 async function main()
 {
@@ -44,19 +45,75 @@ async function main()
                 now: ()=>nowTime
             },
         };
-        // Handle auth here...
-        const authHeader = req.headers.authorization;
-        if ( authHeader != null )
-        {
-            // const authData = await tokenData(process.env.ROLLOUT_PRIVATE_KEY!, authHeader);
-            // return {user: authData};
-            return {}; // todo, replace this meaningless into the upper 2 lines of code later.
-        }
-        else
-        {
-            return {};
-        }
     }
+    const multipleContextInitializer = ({req}: any)=>{
+        function aggr(mess: any, cur: any)
+        {
+            return cur(mess);
+        }
+        const fns: Function[] = [
+            // Set now.
+            (mess: any)=>{
+                const nowTime = new Date(Date.now());
+                return {
+                    ...mess,
+                    now: {
+                        now: ()=>nowTime,
+                    },
+                };
+            },
+            // Parse auth token.
+            (mess: any)=>{
+                // Handle auth here...
+                const authHeader = req.headers.authorization;
+                if ( authHeader != null )
+                {
+                    let authData: any = null;
+                    try
+                    {
+                        authData = parseToken(process.env.ROLLOUT_PRIVATE_KEY!, authHeader);
+                    }
+                    catch
+                    {
+                        console.error("Invalid token leads to Unauthorized context.");
+                        return {
+                            ...mess,
+                            contextualTokenData: {
+                                tokenData: {
+                                    kind: ContextualTokenDataKind.Unauthorized,
+                                },
+                            },
+                        };
+                    }
+                    return {
+                        ...mess,
+                        contextualTokenData: {
+                            // tokenData: {
+                            //     kind: ContextualTokenDataKind.Admin
+                            // },
+                            tokenData: {
+                                kind: ContextualTokenDataKind.User,
+                                userId: authData.id,
+                            },
+                        },
+                    };
+                }
+                else
+                {
+                    return {
+                        ...mess,
+                        contextualTokenData: {
+                            tokenData: {
+                                kind: ContextualTokenDataKind.Unauthorized,
+                            },
+                        },
+                    };
+                }
+            },
+        ];
+        return fns.reduce(aggr, {});
+    };
+
     const graphqlExpressResult = await apolloServer.init({
         domain: process.env.ROLLOUT_DOMAIN!,
         port: Number(process.env.ROLLOUT_APOLLO_PORT!),
@@ -95,7 +152,7 @@ async function main()
                 tokenLifetime: process.env.ROLLOUT_LOGIN_TOKEN_LIFETIME!,
             },
         },
-        contextInitializer: handleAuth,
+        contextInitializer: multipleContextInitializer,
         typeDefs: typeDefs,
         resolvers: resolvers,
     });

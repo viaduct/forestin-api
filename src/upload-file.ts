@@ -141,46 +141,53 @@ export interface FileAllocator
     allocate(user: FileUser): Promise<FileKey>;
 }
 
-async function fileAllocator(c: Context, rawGraphqlUpload: RawGraphqlUpload): Promise<FileAllocator>
+async function fileAllocator(c: Context, rawGraphqlUpload: RawGraphqlUpload | null): Promise<FileAllocator | null>
 {
-    // Create file id with uuid and mime.
-    const graphqlUpload = toGraphqlUpload(rawGraphqlUpload);
-    const newUuid = uuid.v4();
-    const mime = graphqlUpload!.mime;
-    const id = newUuid + "." + mime;
+    if ( rawGraphqlUpload != null )
+    {
+        // Create file id with uuid and mime.
+        const graphqlUpload = toGraphqlUpload(rawGraphqlUpload);
+        const newUuid = uuid.v4();
+        const mime = graphqlUpload!.mime;
+        const id = newUuid + "." + mime;
 
-    // Create file DB object.
-    const now = new Date(Date.now());
-    const dbObj = {
-        _id: id,
-        issuedDate: now,
-        isUploaded: false,
-        usedFrom: [],
-    } as File;
-    const fileCollectionName = "File";
-    await c.mongo.db.collection(fileCollectionName).insertOne(dbObj);
+        // Create file DB object.
+        const now = new Date(Date.now());
+        const dbObj = {
+            _id: id,
+            issuedDate: now,
+            isUploaded: false,
+            usedFrom: [],
+        } as File;
+        const fileCollectionName = "File";
+        await c.mongo.db.collection(fileCollectionName).insertOne(dbObj);
 
-    // Upload it to AWS.
-    await uploadToS3({
-        key: id,
-        s3: c.s3.s3,
-        bucketName: c.s3.defaultBucketName,
-        mime: graphqlUpload!.mime,
-        stream: graphqlUpload!.createReadStream(),
-    });
+        // Upload it to AWS.
+        await uploadToS3({
+            key: id,
+            s3: c.s3.s3,
+            bucketName: c.s3.defaultBucketName,
+            mime: graphqlUpload!.mime,
+            stream: graphqlUpload!.createReadStream(),
+        });
 
-    // Update the DB object as upload finished.
-    await c.mongo.db.collection(fileCollectionName).updateOne({_id: id}, {$set: {isUploaded: true}});
+        // Update the DB object as upload finished.
+        await c.mongo.db.collection(fileCollectionName).updateOne({_id: id}, {$set: {isUploaded: true}});
 
-    // Then, at last, create the FileAllocator.
-    return {
-        id: id,
-        async allocate(user: FileUser): Promise<FileKey>
-        {
-            // Add user to the File DB obj.
-            await c.mongo.db.collection(fileCollectionName).updateOne({_id: id}, {$addToSet: {usedFrom: user}});
+        // Then, at last, create the FileAllocator.
+        return {
+            id: id,
+            async allocate(user: FileUser): Promise<FileKey>
+            {
+                // Add user to the File DB obj.
+                await c.mongo.db.collection(fileCollectionName).updateOne({_id: id}, {$addToSet: {usedFrom: user}});
 
-            return id;
-        }
-    } as FileAllocator;
+                return id;
+            }
+        } as FileAllocator;
+    }
+    else
+    {
+        return null;
+    }
 }

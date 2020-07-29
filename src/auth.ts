@@ -1,5 +1,8 @@
 import {Context, ContextualTokenDataKind, UserContextualTokenData} from "./context";
 import mongo from "mongodb";
+import {CollecKind} from "./enums";
+import {groupMemberKind} from "./bl";
+import {GroupMemberKind} from "./enums/GroupMemberKind";
 
 export interface AuthQuery
 {
@@ -18,7 +21,10 @@ export enum AuthQueryKind
     IsChatRoomMember,
     IsGroupMember,
     IsGroupManageable,
+    IsGroupOfQnaManageable,
+    IsGroupOfScheduleManageable,
     IsGroupOwner,
+    IsGroupQnaAuthor,
     IsTheUser,
     IsVoteMember,
     IsBillMember,
@@ -100,8 +106,15 @@ const authQueryFacs = new Map<AuthQueryKind, AuthQueryFac>([
                     if ( c.contextualTokenData.tokenData.kind == ContextualTokenDataKind.User )
                     {
                         const userId = (c.contextualTokenData.tokenData as UserContextualTokenData).userId;
-                        // todo: Query the db, check whether userId is the chatroom member.
-                        return true; // todo remove this.
+                        const chatMemberCount = await c.mongo.collec(CollecKind.ChatMember).countDocuments(
+                            {
+                                chatRoom: chatRoomIdGetter(c, args),
+                                user: userId,
+                                isDeleted: {$not: {$eq: true}}
+                            },
+                            {limit: 1}
+                        );
+                        return chatMemberCount != 0;
                     }
                     else
                     {
@@ -121,8 +134,15 @@ const authQueryFacs = new Map<AuthQueryKind, AuthQueryFac>([
                     if ( c.contextualTokenData.tokenData.kind == ContextualTokenDataKind.User )
                     {
                         const userId = (c.contextualTokenData.tokenData as UserContextualTokenData).userId;
-                        // todo: Query the db, check whether userId is the group member.
-                        return true; // todo remove this.
+                        const groupMemberCount = await c.mongo.collec(CollecKind.GroupMember).countDocuments(
+                            {
+                                group: groupIdGetter(c, args),
+                                user: userId,
+                                isDeleted: {$not: {$eq: true}},
+                            },
+                            {limit: 1}
+                        );
+                        return groupMemberCount != 0;
                     }
                     else
                     {
@@ -143,8 +163,80 @@ const authQueryFacs = new Map<AuthQueryKind, AuthQueryFac>([
                     if ( c.contextualTokenData.tokenData.kind == ContextualTokenDataKind.User )
                     {
                         const userId = (c.contextualTokenData.tokenData as UserContextualTokenData).userId;
-                        // todo: Query the db, check whether userId is the group manager or owner.
-                        return true; // todo remove this.
+                        const memberKind = await groupMemberKind(c, groupIdGetter(c, args), userId);
+                        switch ( memberKind )
+                        {
+                            case GroupMemberKind.Owner:
+                            case GroupMemberKind.Manager:
+                                return true;
+                            default: return false;
+                        }
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
+            }
+        }
+    ],
+    [
+        AuthQueryKind.IsGroupOfQnaManageable,
+        function(qnaIdGetter: (c: Context, args: any)=>mongo.ObjectId): AuthQuery
+        {
+            return {
+                kind: AuthQueryKind.IsGroupOfQnaManageable,
+                async test(c: Context, args: any): Promise<boolean>
+                {
+                    if ( c.contextualTokenData.tokenData.kind == ContextualTokenDataKind.User )
+                    {
+                        const userId = (c.contextualTokenData.tokenData as UserContextualTokenData).userId;
+                        const {group} = await c.mongo.collec(CollecKind.GroupQna).findOne(
+                            {_id: qnaIdGetter(c, args), isDeleted: {$not: {$eq: true}}},
+                            {group: 1}
+                        );
+                        const memberKind = await groupMemberKind(c, group, userId);
+                        switch ( memberKind )
+                        {
+                            case GroupMemberKind.Owner:
+                            case GroupMemberKind.Manager:
+                                return true;
+                            default:
+                                return false;
+                        }
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
+            }
+        }
+    ],
+    [
+        AuthQueryKind.IsGroupOfScheduleManageable,
+        function(scheduleIdGetter: (c: Context, args: any)=>mongo.ObjectId): AuthQuery
+        {
+            return {
+                kind: AuthQueryKind.IsGroupOfScheduleManageable,
+                async test(c: Context, args: any): Promise<boolean>
+                {
+                    if ( c.contextualTokenData.tokenData.kind == ContextualTokenDataKind.User )
+                    {
+                        const userId = (c.contextualTokenData.tokenData as UserContextualTokenData).userId;
+                        const {group} = await c.mongo.collec(CollecKind.GroupSchedule).findOne(
+                            {_id: scheduleIdGetter(c, args), isDeleted: {$not: {$eq: true}}},
+                            {group: 1}
+                        );
+                        const memberKind = await groupMemberKind(c, group, userId);
+                        switch ( memberKind )
+                        {
+                            case GroupMemberKind.Owner:
+                            case GroupMemberKind.Manager:
+                                return true;
+                            default:
+                                return false;
+                        }
                     }
                     else
                     {
@@ -165,8 +257,40 @@ const authQueryFacs = new Map<AuthQueryKind, AuthQueryFac>([
                     if ( c.contextualTokenData.tokenData.kind == ContextualTokenDataKind.User )
                     {
                         const userId = (c.contextualTokenData.tokenData as UserContextualTokenData).userId;
-                        // todo: Query the db, check whether userId is the group owner.
-                        return true; // todo remove this.
+                        const memberKind = await groupMemberKind(c, groupIdGetter(c, args), userId);
+                        switch ( memberKind )
+                        {
+                            case GroupMemberKind.Owner:
+                            case GroupMemberKind.Manager:
+                                return true;
+                            default:
+                                return false;
+                        }
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
+            }
+        }
+    ],
+    [
+        AuthQueryKind.IsGroupQnaAuthor,
+        function(groupQnaIdGetter: (c: Context, args: any)=>mongo.ObjectId): AuthQuery
+        {
+            return {
+                kind: AuthQueryKind.IsGroupQnaAuthor,
+                async test(c: Context, args: any): Promise<boolean>
+                {
+                    if ( c.contextualTokenData.tokenData.kind == ContextualTokenDataKind.User )
+                    {
+                        const userId = (c.contextualTokenData.tokenData as UserContextualTokenData).userId;
+                        const {author} = await c.mongo.collec(CollecKind.GroupQna).findOne(
+                            {_id: groupQnaIdGetter(c, args), isDeleted: {$not: {$eq: true}}},
+                            {author: 1}
+                        );
+                        return userId.equals(author);
                     }
                     else
                     {
@@ -208,8 +332,12 @@ const authQueryFacs = new Map<AuthQueryKind, AuthQueryFac>([
                     if ( c.contextualTokenData.tokenData.kind == ContextualTokenDataKind.User )
                     {
                         const userId = (c.contextualTokenData.tokenData as UserContextualTokenData).userId;
-                        // todo: Query the db, check whether userId belongs to the vote.
-                        return true; // todo remove this.
+                        const {targets} = await c.mongo.collec(CollecKind.GroupVote).find(
+                            {_id: voteIdGetter(c, args), isDeleted: {$not: {$eq: true}}},
+                            {targets: 1}
+                        );
+                        const targetSet = new Set(targets.map((target: mongo.ObjectId)=>target.toString()));
+                        return targetSet.has(userId.toString());
                     }
                     else
                     {
@@ -230,8 +358,12 @@ const authQueryFacs = new Map<AuthQueryKind, AuthQueryFac>([
                     if ( c.contextualTokenData.tokenData.kind == ContextualTokenDataKind.User )
                     {
                         const userId = (c.contextualTokenData.tokenData as UserContextualTokenData).userId;
-                        // todo: Query the db, check whether userId belongs to the bill.
-                        return true; // todo remove this.
+                        const {targets} = await c.mongo.collec(CollecKind.GroupBill).find(
+                            {_id: billIdGetter(c, args), isDeleted: {$not: {$eq: true}}},
+                            {targets: 1}
+                        );
+                        const targetSet = new Set(targets.map((target: mongo.ObjectId)=>target.toString()));
+                        return targetSet.has(userId.toString());
                     }
                     else
                     {

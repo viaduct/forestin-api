@@ -23,6 +23,7 @@ export function createToken(
     password: string,
 ): Token
 {
+    console.log(c.auth);
     const data = {
         id: id.toString(),
         email: email,
@@ -36,19 +37,41 @@ export function createToken(
     return token;
 }
 
-export function refreshToken(
+export function parseToken(
+    privateKey: string,
+    token: string,
+): {
+    id: mongo.ObjectId,
+    email: string,
+    password: string,
+}
+{
+    const data: any = jwt.verify(token, privateKey);
+    return {
+        id: new mongo.ObjectId(data.id),
+        email: data.email,
+        password: data.password,
+    };
+}
+
+export async function refreshToken(
     c: Context,
     prevToken: Token,
-): Token
+): Promise<Token>
 {
     // Parse the token.
-    const prevData = jwt.verify(prevToken, c.auth.privateKey);
+    const prevData: any = jwt.verify(prevToken, c.auth.privateKey);
+
+    // Regenerate token.
+    console.assert("email" in prevData, prevData);
+    console.assert("password" in prevData, prevData);
+    const newToken = await createTokenFromEmailPassword(c, prevData.email, prevData.password);
 
     // Recreate the token.
-    const newToken = jwt.sign(
-        prevData,
-        c.auth.privateKey
-    );
+    // const newToken = jwt.sign(
+    //     prevData,
+    //     c.auth.privateKey
+    // );
 
     return newToken;
 }

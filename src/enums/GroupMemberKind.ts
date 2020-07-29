@@ -1,3 +1,3 @@
 export enum GroupMemberKind {
-    NotUser, NotMember, Applicant, Normal, Manager, Owner
+    NotUser, NotGroup, NotMember, Applicant, Normal, Manager, Owner
 }

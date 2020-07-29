@@ -1,6 +1,27 @@
 import {Context} from "./context";
 import mongo from "mongodb";
 import {CollecKind} from "./enums";
+import {Gender} from "./enums/Gender";
+import {StudentVerificationState} from "./enums/StudentVerificationState";
+
+export async function createUser(
+    c: Context,
+    args: {
+        _id: mongo.ObjectId,
+        issuedDate: Date,
+        email: string,
+        password: string,
+        name: string,
+        birthday: string,
+        gender: Gender,
+        phoneNumber: string,
+    }
+)
+{
+    // todo check duplicated phone number.
+
+    await c.mongo.collec(CollecKind.User).insertOne(args);
+}
 
 export async function createGroupHistory(c: Context, args: any)
 {
@@ -331,4 +352,299 @@ export async function destroyChatMsg(c: Context, id: mongo.ObjectId)
 {
     // Just delete itself.
     await c.mongo.collec(CollecKind.ChatMsg).updateOne({_id: id}, {isDeleted: true});
+}
+
+export async function updateUser(
+    c: Context,
+    args: {
+        _id: mongo.ObjectId,
+        password?: string,
+    }
+)
+{
+    const updateDoc = {
+        ...(args.password !== undefined)?
+            {password: args.password}:
+            {},
+    };
+    await c.mongo.collec(CollecKind.User).updateOne(
+        {_id: args._id, isDeleted: {$not: {$eq: true}}},
+        {$set: updateDoc},
+    );
+}
+
+export async function createStudentVerification(
+    c: Context,
+    a: {
+        _id: mongo.ObjectId,
+        issuedDate: Date,
+        state: StudentVerificationState,
+        evidences: string[],
+        majors: string[],
+        admissionYear: string,
+    }
+)
+{
+    // todo check user existance.
+    // todo check majors existances.
+    await c.mongo.collec(CollecKind.StudentVerification).insertOne(
+        a
+    );
+}
+
+export async function updateStudentVerification(
+    c: Context,
+    a: {
+        _id: mongo.ObjectId,
+        issuedDate?: Date,
+        state?: StudentVerificationState,
+        fixedDate?: Date,
+    }
+)
+{
+    // todo: check whether student verification object is valid.
+    // todo: if state is not PENDED, fixedDate must be given. Else, must be null.
+    const doc = {
+        ...(a.issuedDate !== undefined)?
+            {issuedDate: a.issuedDate}:
+            {},
+        ...(a.state !== undefined)?
+            {state: a.state}:
+            {},
+        ...(a.fixedDate !== undefined)?
+            {fixedDate: a.fixedDate}:
+            {},
+    };
+    await c.mongo.collec(CollecKind.StudentVerification).updateOne(
+        {_id: a._id, isDeleted: {$now: {$eq: true}}},
+        {$set: doc},
+    );
+}
+
+export async function createGroup(
+    c: Context,
+    a: {
+        _id: mongo.ObjectId,
+        issuedDate: Date,
+        owner: mongo.ObjectId,
+        name: string,
+        brief: string,
+        introduction: string,
+        isSchool: boolean,
+        association: string,
+        poster?: string
+        background?: string,
+        category: string,
+        applicationState?: any,
+    }
+)
+{
+    // todo check owner existance.
+    // todo check association existance
+    // todo check category existance
+
+    await c.mongo.collec(CollecKind.Group).insertOne(a);
+}
+
+export async function updateGroup(
+    c: Context,
+    a: {
+        _id: mongo.ObjectId,
+        issuedDate?: Date,
+        name?: string,
+        brief?: string,
+        introduction?: string,
+        poster?: string | null,
+        background?: string | null,
+        category?: string,
+        applicationState?: any | null,
+    }
+)
+{
+    // todo check _id existance.
+    // todo check category existance
+    const doc = {
+        ...(a.issuedDate != null)?
+            {issuedDate: a.issuedDate}:
+            {},
+        ...(a.name != null)?
+            {name: a.name}:
+            {},
+        ...(a.brief != null)?
+            {brief: a.brief}:
+            {},
+        ...(a.introduction != null)?
+            {introduction: a.introduction}:
+            {},
+        ...(a.poster != null)?
+            {poster: a.poster}:
+            {},
+        ...(a.background != null)?
+            {background: a.background}:
+            {},
+        ...(a.category != null)?
+            {category: a.category}:
+            {},
+        ...(a.applicationState != null)?
+            {applicationState: a.applicationState}:
+            {},
+    };
+    await c.mongo.collec(CollecKind.Group).updateOne(
+        {_id: a._id, isDeleted: {$not: {$eq: true}}},
+        {$set: doc},
+    );
+}
+
+export async function createGroupQna(
+    c: Context,
+    args: {
+        _id: mongo.ObjectId,
+        issuedDate: Date,
+        author: mongo.ObjectId,
+        group: mongo.ObjectId,
+        body: string,
+        answer?: string,
+    }
+)
+{
+    // todo check author existance.
+    // todo check group existance.
+    await c.mongo.collec(CollecKind.GroupQna).insertOne(args);
+}
+
+export async function updateGroupQna(
+    c: Context,
+    args: {
+        _id: mongo.ObjectId,
+        issuedDate?: Date,
+        body?: string,
+        answer?: string | null,
+    }
+)
+{
+    // todo check qna existance.
+    const doc = {
+        ...(args.issuedDate != null)?
+            {issuedDate: args.issuedDate}:
+            {},
+        ...(args.body != null)?
+            {body: args.body}:
+            {},
+        ...(args.answer !== undefined)?
+            {answer: args.answer}:
+            {},
+    };
+    await c.mongo.collec(CollecKind.GroupQna).updateOne(
+        {_id: args._id, isDeleted: {$not: {$eq: true}}},
+        doc
+    );
+}
+
+export async function createGroupSchedule(
+    c: Context,
+    args: {
+        _id: mongo.ObjectId,
+        group: mongo.ObjectId,
+        title: string,
+        date: Date,
+        targets: mongo.ObjectId[],
+    }
+)
+{
+    await c.mongo.collec(CollecKind.GroupSchedule).insertOne(args);
+}
+
+export async function updateGroupSchedule(
+    c: Context,
+    args: {
+        _id: mongo.ObjectId,
+        title?: string,
+        date?: Date,
+        targets?: mongo.ObjectId[],
+    }
+)
+{
+    // todo check group schedule exitsnace.
+    // todo Check all targets for existance.
+    const doc = {
+        ...(args.title != null)?
+            {title: args.title}:
+            {},
+        ...(args.date != null)?
+            {date: args.date}:
+            {},
+        ...(args.targets != null)?
+            {targets: args.targets}:
+            {},
+    };
+    await c.mongo.collec(CollecKind.GroupSchedule).updateOne(
+
+        {_id: args._id, isDeleted: {$not: {$eq: true}}},
+        {$set: doc},
+    );
+}
+
+export async function createGroupNotice(
+    c: Context,
+    args: {
+        _id: mongo.ObjectId,
+        issuedDate: Date,
+        lastModifiedAt: Date,
+        group: mongo.ObjectId,
+        author: mongo.ObjectId,
+        isUrgent: boolean,
+        title: string,
+        body: string,
+        files: string[],
+        images: string[],
+    }
+)
+{
+    // todo check group and author existance.
+    await c.mongo.collec(CollecKind.GroupNotice).insertOne(args);
+}
+
+export async function updateGroupNotice(
+    c: Context,
+    args: {
+        _id: mongo.ObjectId,
+        issuedDate?: Date,
+        lastModifiedAt?: Date,
+        isUrgent?: boolean,
+        title?: string,
+        body?: string,
+        files?: string[],
+        images?: string[],
+    }
+)
+{
+    const doc = {
+        _id: args._id,
+        ...(args.issuedDate != null)?
+            {issuedDate: args.issuedDate}:
+            {},
+        ...(args.lastModifiedAt != null)?
+            {lastModifiedAt: args.lastModifiedAt}:
+            {},
+        ...(args.isUrgent != null)?
+            {isUrgent: args.isUrgent}:
+            {},
+        ...(args.title != null)?
+            {title: args.title}:
+            {},
+        ...(args.body != null)?
+            {body: args.body}:
+            {},
+        ...(args.files != null)?
+            {files: args.files}:
+            {},
+        ...(args.images != null)?
+            {images: args.images}:
+            {},
+    };
+    // todo check id existance.
+    await c.mongo.collec(CollecKind.GroupNotice).updateOne(
+        {_id: args._id, isDeleted: {$not: {$eq: true}}},
+        doc,
+    );
 }

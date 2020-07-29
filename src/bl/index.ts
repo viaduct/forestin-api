@@ -5,23 +5,39 @@ import {CollecKind} from "../enums";
 import {StudentVerificationState} from "../enums/StudentVerificationState";
 import {GroupMemberKind} from "../enums/GroupMemberKind";
 import {emptyWrap} from "../gql/resolvers/util";
+import {Gender} from "../enums/Gender";
+import * as fs from "../failsafe2";
 
-export async function signUp(c: Context, userData: any): Promise<mongo.ObjectId>
+export async function signUp(
+    c: Context,
+    a: {
+        email: string,
+        password: string,
+        name: string,
+        birthday: string,
+        gender: Gender,
+        phoneNumber: string,
+    }
+): Promise<{id: mongo.ObjectId}>
 {
     // Create user.
     const newUserId = new mongo.ObjectId();
     const now = new Date(Date.now()); // todo now declaration. Add this to the context.
-    await create(
+    await fs.createUser(
         c,
-        CollecKind.User,
         {
-            ...userData,
             _id: newUserId,
             issuedDate: now,
+            email: a.email,
+            password: a.password,
+            name: a.name,
+            birthday: a.birthday,
+            gender: a.gender,
+            phoneNumber: a.phoneNumber,
         },
     );
 
-    return newUserId;
+    return {id: newUserId};
 }
 
 export async function updateUser(c: Context, id: mongo.ObjectId, userData: any)
@@ -198,6 +214,7 @@ export async function succeedGroupOwner(
     const group = c.mongo.collec(CollecKind.Group).findOne({_id: groupId});
     if ( group != null )
     {
+        // todo check whether the new owner is valid.
         // Reset group owner.
         await c.mongo.collec(CollecKind.Group).updateOne({_id: groupId}, {$set: {owner: newOwnerId}});
 
@@ -224,31 +241,40 @@ export async function groupMemberKind(
 ): Promise<GroupMemberKind>
 {
     // Is a valid user?
-    const userCount = await c.mongo.collec(CollecKind.User).countDocument({_id: userId}, {limit: 1});
+    const userCount = await c.mongo.collec(CollecKind.User).countDocument({_id: userId, isDeleted: {$not: {$eq: true}}}, {limit: 1});
     if ( userCount == 1 )
     {
-        // Is owner?
-        const {owner: groupOwnerId} = await c.mongo.collec(CollecKind.Group).findOne({_id: groupId})
-        if ( groupId.equals(groupOwnerId) )
+        // Is a valid group?
+        const groupCount = await c.mongo.collec(CollecKind.Group).countDocument({_id: groupId, isDeleted: {$not: {$eq: true}}}, {limit: 1});
+        if ( groupCount == 1 )
         {
-            return GroupMemberKind.Owner;
-        }
-        else
-        {
-            // Find member object.
-            const memberFilter = {
-                group: groupId,
-                user: userId,
-            };
-            const member = await c.mongo.collec(CollecKind.GroupMember).findOne(memberFilter);
-            if ( member != null )
+            // Is owner?
+            const {owner: groupOwnerId} = await c.mongo.collec(CollecKind.Group).findOne({_id: groupId})
+            if ( groupId.equals(groupOwnerId) )
             {
-                return member.kind;
+                return GroupMemberKind.Owner;
             }
             else
             {
-                return GroupMemberKind.NotMember;
+                // Find member object.
+                const memberFilter = {
+                    group: groupId,
+                    user: userId,
+                };
+                const member = await c.mongo.collec(CollecKind.GroupMember).findOne(memberFilter);
+                if ( member != null )
+                {
+                    return member.kind;
+                }
+                else
+                {
+                    return GroupMemberKind.NotMember;
+                }
             }
+        }
+        else
+        {
+            return GroupMemberKind.NotGroup;
         }
     }
     else
@@ -445,6 +471,7 @@ export async function findUserByEmailPassword(
 {
     const theUser = await c.mongo.collec(CollecKind.User).findOne(
         {
+            isDeleted: {$not: {$eq: true}},
             email: email,
             password: password,
         },

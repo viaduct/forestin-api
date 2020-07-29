@@ -395,11 +395,13 @@ type Mutation
         groupId: ID!
         title: String!
         date: TimeStamp!
+        targets: [ID!]!
     ): GroupSchedule!
     updateGroupSchedule(
         scheduleId: ID!
         title: String
         date: TimeStamp
+        targets: [ID!]!
     ): None
     destroyGroupSchedule(id: ID!): None
     

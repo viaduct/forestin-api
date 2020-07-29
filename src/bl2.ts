@@ -7,6 +7,12 @@ import {addAsSet, ChatHostGroup, ChatHostGroupQna, ChatMsgKind, removeAsSet, Vot
 import {ChatHostKind} from "./enums/ChatHostKind";
 import {GroupHistoryState} from "./enums/GroupHistoryState";
 import * as uuid from "uuid";
+import * as loginToken from "./login-token";
+import {createTokenFromEmailPassword} from "./login-token";
+import {findUserByEmailPassword, groupMemberKind} from "./bl";
+import {StudentVerificationState} from "./enums/StudentVerificationState";
+import {GroupMemberKind} from "./enums/GroupMemberKind";
+import {create} from "./failsafe";
 
 // Forall todo typecheck.
 
@@ -507,12 +513,11 @@ export async function groupBill(
 export function bypassId(colKind: CollecKind): Function
 {
     return async (
+        parent: any,
+        args: any,
         c: Context,
-        args: {
-            id: mongo.ObjectId,
-        },
     )=>{
-        if ( await exists(c, colKind, args.id) )
+        if ( await exists(c, colKind, new mongo.ObjectId(args.id)) )
         {
             return {id: args.id}
         }
@@ -543,3 +548,588 @@ export async function exists(
     }
 }
 
+export async function signIn(
+    c: Context,
+    a: {
+        email: string,
+        password: string,
+    }
+): Promise<{
+    token: string;
+    userId: mongo.ObjectId,
+}>
+{
+    const token = await createTokenFromEmailPassword(c, a.email, a.password);
+    const userId = await findUserByEmailPassword(c, a.email, a.password);
+    return {
+        token: token,
+        userId: userId,
+    };
+}
+
+export async function refreshToken(
+    c: Context,
+    a: {
+        oldToken: string,
+    }
+): Promise<string>
+{
+    return await loginToken.refreshToken(c, a.oldToken);
+}
+
+export async function updateUser(
+    c: Context,
+    a: {
+        userId: mongo.ObjectId,
+        password?: string,
+    }
+)
+{
+    const doc = {
+        _id: a.userId,
+        ...(a.userId !== undefined)?
+            {password: a.password}:
+            {},
+    };
+    await fsl.updateUser(
+        c,
+        doc
+    );
+}
+
+export async function requestStudentVerification(
+    c: Context,
+    a: {
+        userId: mongo.ObjectId,
+        evidences: FileAllocator[],
+        majors: string[],
+        admissionYear: string,
+    }
+): Promise<{id: mongo.ObjectId}>
+{
+    const id = new mongo.ObjectId();
+    const now = new Date(Date.now());
+
+    const doc = {
+        _id: id,
+        issuedDate: now,
+        state: StudentVerificationState.Pended,
+        evidences: await Promise.all(
+            a.evidences.map(
+                (evidence: FileAllocator)=>evidence.allocate([CollecKind.StudentVerification, id.toString(), "evidences"])
+            )
+        ),
+        majors: a.majors,
+        admissionYear: a.admissionYear,
+    };
+    await fsl.createStudentVerification(c, doc);
+    return {id};
+}
+
+export async function confirmStudentVerification(
+    c: Context,
+    args: {
+        studentVerificationId: mongo.ObjectId,
+    }
+)
+{
+    const now = new Date(Date.now());
+    await fsl.updateStudentVerification(
+        c,
+        {
+            _id: args.studentVerificationId,
+            state: StudentVerificationState.Confirmed,
+            fixedDate: now,
+        }
+    );
+}
+
+export async function rejectStudentVerification(
+    c: Context,
+    args: {
+        studentVerificationId: mongo.ObjectId,
+    }
+)
+{
+    const now = new Date(Date.now());
+    await fsl.updateStudentVerification(
+        c,
+        {
+            _id: args.studentVerificationId,
+            state: StudentVerificationState.Rejected,
+            fixedDate: now,
+        }
+    );
+}
+
+export async function createGroup(
+    c: Context,
+    args: {
+        owner: mongo.ObjectId,
+        name: string,
+        brief: string,
+        introduction: string,
+        isSchool: boolean,
+        association: string,
+        poster?: FileAllocator,
+        background?: FileAllocator,
+        category: string,
+        applicationState?: any
+    }
+): Promise<{id: mongo.ObjectId}>
+{
+    const id = new mongo.ObjectId();
+    const now = new Date(Date.now());
+    const doc = {
+        _id: id,
+        issuedDate: now,
+        owner: args.owner,
+        name: args.name,
+        brief: args.brief,
+        introduction: args.introduction,
+        isSchool: args.isSchool,
+        association: args.association,
+        ...(args.poster != null)?
+            {poster: await args.poster.allocate([CollecKind.Group, id.toString(), "poster"])}:
+            {},
+        ...(args.background != null)?
+            {background: await args.background.allocate([CollecKind.Group, id.toString(), "background"])}:
+            {},
+        category: args.category,
+        applicationState: args.applicationState,
+    };
+    await fsl.createGroup(c, doc);
+    return {id};
+}
+
+export async function updateGroup(
+    c: Context,
+    a: {
+        groupId: mongo.ObjectId,
+        name?: string,
+        brief?: string,
+        introduction?: string,
+        unsetPoster?: boolean,
+        unsetBackground?: boolean,
+        poster?: FileAllocator,
+        background?: FileAllocator,
+        category?: string,
+        unsetApplicationState?: boolean,
+        applicationState?: boolean,
+    }
+)
+{
+    const doc = {
+        _id: a.groupId,
+        ...(a.name != null)?
+            {name: a.name}:
+            {},
+        ...(a.brief != null)?
+            {brief: a.brief}:
+            {},
+        ...(a.introduction != null)?
+            {introduction: a.introduction}:
+            {},
+        ...()=>{
+            if ( a.unsetPoster )
+            {
+                return {poster: null};
+            }
+            else
+            {
+                if ( a.poster != null )
+                {
+                    return {poster: a.poster.allocate([CollecKind.Group, a.groupId.toString(), "poster"])};
+                }
+            }
+        },
+        ...()=>{
+            if ( a.unsetBackground )
+            {
+                return {background: null};
+            }
+            else
+            {
+                if ( a.background != null )
+                {
+                    return {background: a.background.allocate([CollecKind.Group, a.groupId.toString(), "background"])};
+                }
+            }
+        },
+        ...(a.category != null)?
+            {category: a.category}:
+            {},
+        ...()=>{
+            if ( a.unsetApplicationState )
+            {
+                return {applicationState: null};
+            }
+            else
+            {
+                if ( a.applicationState != null )
+                {
+                    return {applicationState: a.applicationState};
+                }
+            }
+        },
+    };
+    await fsl.updateGroup(c, doc);
+}
+
+export async function applyGroup(
+    c: Context,
+    args: {
+        groupId: mongo.ObjectId,
+        userId: mongo.ObjectId,
+    }
+)
+{
+    // todo check user exists.
+    // todo check group exists.
+    // todo check whether user is already the member of the group.
+    // Can apply to the group when GroupMemberKind is NotMember.
+    const memberKind = await groupMemberKind(
+        c,
+        args.groupId,
+        args.userId,
+    );
+    if ( memberKind == GroupMemberKind.NotMember )
+    {
+        // todo DO NOT CALL RAW ACTION IN BUSINESS LOGIC.
+        const newMemberId = new mongo.ObjectId();
+        await c.mongo.collec(CollecKind.GroupMember).insertOne({
+            _id: newMemberId,
+            group: args.groupId,
+            user: args.userId,
+            kind: GroupMemberKind.Applicant,
+        });
+    }
+    else
+    {
+        throw new Error(""); // todo there may be better error format.
+    }
+}
+
+export async function leaveGroup(
+    c: Context,
+    args: {
+        groupId: mongo.ObjectId,
+        userId: mongo.ObjectId,
+    }
+)
+{
+    // todo check user exists.
+    // todo check group exists.
+    // todo check whether user is already the member of the group.
+
+    // Only Applicant, Manager, and Normal members can leave.
+    const memberKind = await groupMemberKind(c, args.groupId, args.userId);
+    switch ( memberKind )
+    {
+        case GroupMemberKind.Applicant:
+        case GroupMemberKind.Manager:
+        case GroupMemberKind.Normal:
+        {
+            // todo DO NOT CALL RAW ACTION IN BUSINESS LOGIC.
+            await c.mongo.collec(CollecKind.GroupMember).deleteOne({group: args.groupId, user: args.userId});
+            break;
+        }
+        default:
+            throw new Error(""); // todo there can be a better error format.
+    }
+}
+
+export async function updateMember(
+    c: Context,
+    args: {
+        groupId: mongo.ObjectId,
+        userId: mongo.ObjectId,
+        newMemberKind: GroupMemberKind,
+    }
+)
+{
+    // todo check user exists.
+    // todo check group exists.
+    // todo check whether user is the member of the group.
+
+    // Only newKind of Manager, Normal can be possible.
+    if (
+        args.newMemberKind == GroupMemberKind.Normal ||
+        args.newMemberKind == GroupMemberKind.Manager
+    )
+    {
+        // Only prevKind of Applicant, Manager, Normal can be possible.
+        const memberKind = await groupMemberKind(c, args.groupId, args.userId);
+        switch ( memberKind )
+        {
+            case GroupMemberKind.Normal:
+            case GroupMemberKind.Manager:
+            case GroupMemberKind.Applicant:
+            {
+                // todo DO NOT CALL RAW ACTION IN BUSINESS LOGIC.
+                const find = {user: args.userId, group: args.groupId};
+                const update = {$set: {kind: args.newMemberKind}};
+                await c.mongo.collec(CollecKind.GroupMember).updateOne(find, update);
+                break;
+            }
+            default:
+                throw 0; // todo not appropriate group member kind.
+        }
+    }
+    else
+    {
+        throw 0; // todo better error!
+    }
+}
+
+export async function succeedGroupOwner(
+    c: Context,
+    args: {
+        groupId: mongo.ObjectId,
+        newOwnerId: mongo.ObjectId,
+    }
+)
+{
+    // Find the previous owner.
+    const group = c.mongo.collec(CollecKind.Group).findOne({_id: args.groupId});
+    if ( group != null )
+    {
+        // todo check whether the new owner is valid.
+        // Reset group owner.
+        await c.mongo.collec(CollecKind.Group).updateOne({_id: args.groupId}, {$set: {owner: args.newOwnerId}});
+
+        // Add new member.
+        // If there's already one, it will fail automatically.
+        // todo DO NOT CALL RAW ACTION IN BUSINESS LOGIC.
+        const newMemId = new mongo.ObjectId();
+        await c.mongo.collec(CollecKind.GroupMember).insertOne({
+            _id: newMemId,
+            group: args.groupId,
+            user: args.newOwnerId,
+            kind: GroupMemberKind.Manager,
+        });
+    }
+    else
+    {
+        throw 0; // todo place good error, there's no matching group.
+    }
+}
+
+export async function createGroupQna(
+    c: Context,
+    args: {
+        groupId: mongo.ObjectId,
+        authorId: mongo.ObjectId,
+        body: string,
+    }
+): Promise<{id: mongo.ObjectId}>
+{
+    const id = new mongo.ObjectId();
+    const now = new Date(Date.now()); // todo fixxxxxx this!
+    const doc = {
+        author: args.authorId,
+        group: args.groupId,
+        body: args.body,
+
+        _id: id,
+        issuedDate: now,
+    }
+    await fsl.createGroupQna(c, doc);
+    return {id};
+}
+
+export async function updateGroupQna(
+    c: Context,
+    args: {
+        qnaId: mongo.ObjectId,
+        body?: string,
+    }
+)
+{
+    const doc = {
+        _id: args.qnaId,
+        ...(args.body != null)?
+            {body: args.body}:
+            {}
+    };
+    await fsl.updateGroupQna(c, doc);
+}
+
+export async function answerGroupQna(
+    c: Context,
+    args: {
+        qnaId: mongo.ObjectId,
+        answer: string,
+    }
+)
+{
+    const doc = {
+        _id: args.qnaId,
+        answer: args.answer,
+    };
+    await fsl.updateGroupQna(c, doc);
+}
+
+export async function createGroupSchedule(
+    c: Context,
+    args: {
+        groupId: mongo.ObjectId,
+        title: string,
+        date: Date,
+        targets: mongo.ObjectId[],
+    }
+): Promise<{id: mongo.ObjectId}>
+{
+    const id = new mongo.ObjectId();
+
+    const doc = {
+        _id: id,
+        group: args.groupId,
+        title: args.title,
+        date: args.date,
+        targets: args.targets,
+    };
+
+    await fsl.createGroupSchedule(c, doc);
+
+    return {id};
+}
+
+export async function updateGroupSchedule(
+    c: Context,
+    args: {
+        scheduleId: mongo.ObjectId,
+        title?: string,
+        date?: Date,
+        targets?: mongo.ObjectId[],
+    }
+)
+{
+    const doc = {
+        _id: args.scheduleId,
+        ...(args.title != null)?
+            {title: args.title}:
+            {},
+        ...(args.date != null)?
+            {date: args.date}:
+            {},
+        ...(args.targets != null)?
+            {targets: args.targets}:
+            {},
+    };
+    await fsl.updateGroupSchedule(c, doc);
+}
+
+export async function createGroupNotice(
+    c: Context,
+    args: {
+        groupId: mongo.ObjectId,
+        authorId: mongo.ObjectId,
+        isUrgent: boolean,
+        title: string,
+        body: string,
+        files: FileAllocator[],
+        images: FileAllocator[],
+    }
+): Promise<{id: mongo.ObjectId}>
+{
+    const id = new mongo.ObjectId();
+    const now = new Date(Date.now());
+    const doc = {
+        _id: id,
+        issuedDate: now,
+        lastModifiedAt: now,
+        group: args.groupId,
+        author: args.authorId,
+        isUrgent: args.isUrgent,
+        title: args.title,
+        body: args.body,
+        files: await Promise.all(
+                args.files.map((f: FileAllocator)=>f.allocate(
+                [CollecKind.GroupNotice, id.toString(), "files"]
+            ))
+        ),
+        images: await Promise.all(
+            args.images.map((f: FileAllocator)=>f.allocate(
+                [CollecKind.GroupNotice, id.toString(), "images"]
+            ))
+        ),
+    };
+    await fsl.createGroupNotice(c, doc);
+
+    return {id};
+}
+
+export async function updateGroupNotice(
+    c: Context,
+    args: {
+        noticeId: mongo.ObjectId,
+        isUrgent?: boolean,
+        title?: string,
+        body?: string,
+        filesAdded?: FileAllocator[],
+        filesRemoved?: string[],
+        imagesAdded?: FileAllocator[],
+        imagesRemoved?: string[],
+    }
+)
+{
+    // Get images and files.
+    const {images, files} = await c.mongo.collec(CollecKind.GroupNotice).findOne(
+        {_id: args.noticeId, isDeleted: {$not: {$eq: true}}},
+        {images: 1, files: 1}
+    );
+
+    // Add and remove.
+    const newImages = new Set<string>(images);
+    if ( args.imagesAdded )
+    {
+        await Promise.all(args.imagesAdded.map(
+            async (file: FileAllocator)=>{
+                const key = await file.allocate([CollecKind.GroupNotice, args.noticeId.toString(), "images"]);
+                newImages.add(key);
+            }
+        ));
+    }
+    if ( args.imagesRemoved )
+    {
+        args.imagesRemoved.forEach(
+            (file: string)=>newImages.delete(file)
+        );
+    }
+    const newFiles = new Set<string>(files);
+    if ( args.filesAdded )
+    {
+        await Promise.all(args.filesAdded.map(
+            async (file: FileAllocator)=>{
+                const key = await file.allocate([CollecKind.GroupNotice, args.noticeId.toString(), "files"]);
+                newFiles.add(key);
+            }
+        ));
+    }
+    if ( args.filesRemoved )
+    {
+        args.filesRemoved.forEach(
+            (file: string)=>newFiles.delete(file)
+        );
+    }
+
+
+    const now = new Date(Date.now());
+    const doc = {
+        _id: args.noticeId,
+        lastModifiedAt: now,
+        ...(args.isUrgent != null)?
+            {isUrgent: args.isUrgent}:
+            {},
+        ...(args.title != null)?
+            {title: args.title}:
+            {},
+        ...(args.body != null)?
+            {body: args.body}:
+            {},
+        files: Array.from(newFiles),
+        images: Array.from(newImages),
+    };
+    await fsl.updateGroupNotice(c, doc);
+}
